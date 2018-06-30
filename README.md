@@ -2,6 +2,15 @@
 
 ## Overview
 
+TBD
+
+Files found in AGL distribution:
+
+* https://github.com/AGLExport/gpsnavi/
+* https://gerrit.automotivelinux.org/gerrit/AGL/meta-agl-demo
+* http://agl.wismobi.com/data/japan_TR9/navi_data.tar.gz
+* http://agl.wismobi.com/data/UnitedKingdom_TR9/navi_data_UK.tar.gz
+
 ## Quick start
 
 TBD
