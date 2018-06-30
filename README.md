@@ -2,6 +2,10 @@
 
 ## Overview
 
+## Quick start
+
+TBD
+
 ## Polaris.db
 
 ## Subdirectories and files
@@ -22,7 +26,7 @@ Polaris.db read/write
 
 OSM related
 
-# osm-download
+* osm-download
 
 ### test directory
 
