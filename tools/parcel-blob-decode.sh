@@ -1,7 +1,7 @@
 #!/bin/bash
 
 usage_exit() {
-  echo "Usage: parcel-blob [-d] [-e] [-k kind] [blob]
+  echo "Usage: parcel-blob-decode [-k kind] [blob]
 Interpret blob data in PARCEL table.
 
 -d	decode
@@ -74,6 +74,23 @@ $1
 EOF
 }
 
+stripx() {
+  T="$1"
+  if [ "X'" == "${T:0:2}" ]; then
+    T="${T:2}"
+    T="${T:0:$((${#T}-1))}"
+  fi
+  echo "$T"
+}
+
+notready() {
+  echo "# NOT IMPLEMENTED!!"
+}
+
+
+#
+# PARCEL_BASIS
+#
 
 decode_PARCEL_BASIS() {
   echo "# PARCEL_BASIS"
@@ -92,25 +109,54 @@ decode_PARCEL_BASIS() {
   printf 'Y_RIGHT: 0x%X\n' $Y_RIGHT
 }
 
+#
+# ROAD_SHAPE
+#
+
 decode_ROAD_SHAPE() {
   echo "# ROAD_SHAPE"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
+  notready
 }
+
+#
+# ROAD_NETWORK
+#
+
 decode_ROAD_NETWORK() {
   echo "# ROAD_NETWORK"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
+  notready
 }
+
+#
+# BKGD
+#
+
 decode_BKGD() {
   echo "# BKGD"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
+  notready
 }
+
+#
+# BKGD_AREA_CLS
+#
+
 decode_BKGD_AREA_CLS() {
   echo "# BKGD_AREA_CLS"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
+  notready
 }
+
+#
+# MARK
+#
+
 decode_MARK() {
   echo "# MARK"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
+  notready
 }
 
 #
@@ -134,8 +180,8 @@ decode_MARK() {
 decode_RNLG() {
   D=$1
 
-  RNLG_SIZE="`SE16 ${D:0:4}`"
-  RNLG_LANG_KIND="${D:4:2}"
+  RNLG_SIZE="0x`SE16 ${D:0:4}`"
+  RNLG_LANG_KIND="0x${D:4:2}"
 #  RNLG_GUIDE_VOICE_ID="0x`SE32 ${D:8:8}`"
 
   printf 'RNLG_SIZE=%d\n' $RNLG_SIZE
@@ -161,9 +207,9 @@ decode_RNLG() {
 decode_RDNM() {
   D=$1
 
-  RDNM_SIZE="`SE16 ${D:0:4}`"
-  RDNM_LANG_CNT="`SE16 ${D:4:4}`"
-  RDNM_ID="`SE32 ${D:8:8}`"
+  RDNM_SIZE="0x`SE16 ${D:0:4}`"
+  RDNM_LANG_CNT="0x`SE16 ${D:4:4}`"
+  RDNM_ID="0x`SE32 ${D:8:8}`"
 
   printf 'RDNM_SIZE=%d\n' $RDNM_SIZE
   printf 'RDNM_LANG_CNT=%d\n' $RDNM_LANG_CNT
@@ -258,17 +304,30 @@ D=$D2
   done
 }
 
+#
+# GUIDE
+#
+
 decode_GUIDE() {
   echo "# GUIDE"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
+  notready
 }
+
+#
+# ROAD_DENSITY
+#
+
 decode_ROAD_DENSITY() {
   echo "# ROAD_DENSITY"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
+  notready
 }
 
 #[ -n "$VERBOSE" ] && echo "KIND=$KIND"
 #[ -n "$VERBOSE" ] && echo "BLOB=$BLOB"
+
+BLOB="`stripx "$BLOB"`"
 
 DHC_VOLUM_INFO="0x`SE32 ${BLOB:0:8}`" # 4 bytes
 
