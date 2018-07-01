@@ -91,6 +91,8 @@ notready() {
 #
 # PARCEL_BASIS
 #
+# See SMRoadShapeAnalyze.cpp
+#
 
 decode_PARCEL_BASIS() {
   echo "# PARCEL_BASIS"
@@ -112,11 +114,82 @@ decode_PARCEL_BASIS() {
 #
 # ROAD_SHAPE
 #
+# UINT16 ALL_SHAPE_CNT
+#
+# xxx OFS
+#
+
+decode_ROAD_SHAPE_DATA() {
+  SD=$D # save
+  D="$1"
+echo "SHAPE_DATA=$D"
+
+  SHAPE_DATA_SIZE="0x`SE32 ${D:0:8}`"
+  SHAPE_DATA_SIZE="$(($SHAPE_DATA_SIZE * 4))"
+  SHAPE_DATA_CNT="0x`SE32 ${D:8:8}`"
+
+  printf 'SHAPE_DATA_SIZE=%d\n' $SHAPE_DATA_SIZE
+  printf 'SHAPE_DATA_CNT=%d\n' $SHAPE_DATA_CNT
+
+  RDSP="${D:16}" # 8 x 2
+echo "RDSP=$RDSP"
+#  for ((i=0; i < $SHAPE_DATA_CNT;i++));do
+#    T="0x`SE16 ${RDSP:0:4}`"
+#    T=$(($T * 4))
+#    echo "RDSP[$i]=${RDSP:0:$(($T * 2))}"
+#    RDSP="${RDSP:$(($T * 2))}"
+#  done
+
+  D=$SD # restore
+}
+
+INV32="0xffffffff"
 
 decode_ROAD_SHAPE() {
-  echo "# ROAD_SHAPE"
+  echo "!! ROAD_SHAPE"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notready
+  SD="$D" # save
+
+  D="$2"
+echo "SHAPE=$D"
+
+  OFS="0x`SE32 ${D:$(((4 + 64) * 2)):8}`"
+echo "OFS=$OFS"
+  LINK_INDEX="${D:$((($OFS * 4) * 2))}"
+echo "LINK_INDEX=$LINK_INDEX"
+  LINKCNT="0x`SE32 ${LINK_INDEX:$((4 * 2)):8}`"
+
+echo "LNKCNT=$LINKCNT"
+
+  SHAPEINDEX="0x`SE32 ${LINK_INDEX:$((8 * 2)):8}`"
+
+echo "D=$D"
+
+  ALL_SHAPE_CNT="0x`SE32 ${D:0:4}`"
+
+  printf 'ALL_SHAPE_CNT=%d\n' $ALL_SHAPE_CNT
+  printf 'LINKCNT=%d\n' $LINKCNT
+
+# ROAD_KIND_CNT_MAX 16
+  ROAD_TYPE_OFS=()
+  for ((i=0;i<16;i++));do
+    ROAD_TYPE_OFS[$i]="0x`SE32 ${D:$(($i * 4 * 2)):8}`"
+  done
+
+  echo "ROAD_TYPE_OFS=${ROAD_TYPE_OFS[@]}"
+
+  for ((i=0;i<16;i++));do
+
+printf 'ROAD_TYPE_OFS[%d]=%d\n' $i ${ROAD_TYPE_OFS[$i]}
+T=${ROAD_TYPE_OFS[$i]}
+   [ "$T" == $INV32  ] && continue
+    echo "CALL decode_ROAD_SHAPE_DATA i=$i"
+    echo "T=$(($T * 4 * 2))"
+    echo "P1=${D:$(($T * 4 * 2))}"
+    decode_ROAD_SHAPE_DATA "${D:$(($T * 4 * 2))}"
+  done
+
+  D="$SD" # restore
 }
 
 #
@@ -152,11 +225,27 @@ decode_BKGD_AREA_CLS() {
 #
 # MARK
 #
+# See sms/sms-core/SMCoreMP/SMMarkAnalyze.cpp
+#
 
 decode_MARK() {
-  echo "# MARK"
+  echo "!! MARK"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notready
+  SD=$D
+  D="$2"
+
+  MARK_CNT="0x`SE32 ${D:0:8}`"
+  printf 'MARK_CNT=%d\n' $MARK_CNT
+
+  D="${D:8}"
+  for ((i=0;i<$MARK_CNT;i++)); do
+    Z="0x`SE16 ${D:0:4}`"
+    Z="$(($Z * 4 * 2))"
+    echo "MARK[$i]=${D:0:$Z}"
+    D="${D:$Z}"
+  done 
+
+  D=$SD
 }
 
 #
