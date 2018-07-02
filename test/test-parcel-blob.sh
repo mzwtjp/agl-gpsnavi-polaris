@@ -1,7 +1,8 @@
 #!/bin/bash
 
-#INFILE=../data/uk/p20.txt
-INFILE=../data/uk/p01.txt
+#INFILE=../data/uk/PARCEL.txt
+#INFILE=../data/uk/PARCEL_100.txt
+INFILE=../data/uk/PARCEL_500.txt
 DECODE=../tools/parcel-blob-decode.sh
 
 #  PARCEL_ID INTEGER NOT NULL,
@@ -48,8 +49,20 @@ echo "L=$L"
   echo "BKGD_BASE_VERSION=${array[12]}"
 }
 
-grep '^INSERT INTO PARCEL VALUES(' $INFILE | while read -r line ; do
-    echo "Processing $line"
+# note: check your sqlite3 output data so that the pattern string
+# below matches with yours
+
+#PAT='^INSERT INTO PARCEL VALUES('
+PAT='^INSERT INTO "PARCEL" VALUES('
+
+CNT=0
+grep "$PAT" $INFILE | \
+    while read -r line ; do
+  echo "Processing $line"
   process "$line"
+  CNT=$(($CNT+1))
+  echo "$CNT records."
 done
+
+echo "Done."
 

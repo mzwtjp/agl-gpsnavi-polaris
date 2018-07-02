@@ -1,0 +1,15 @@
+#!/bin/sh
+
+INFILE=../data/uk/SYSTEM_INFORMATION.txt
+
+#INSERT INTO SYSTEM_INFORMATION VALUES('SYSTEM_MAP_RANGE'
+
+PAT="^INSERT INTO SYSTEM_INFORMATION VALUES('SYSTEM_MAP_RANGE'"
+
+IFS=':' A=($(
+grep "$PAT" $INFILE | \
+  sed "s/.*,'\(.*\)');/\1\n/"))
+
+# T_LAT,B_LAT,L_LON,R_LON
+echo "SYSTEM_MAP_RANGE=${A[0]},${A[1]},${A[2]},${A[3]}"
+

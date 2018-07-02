@@ -116,14 +116,86 @@ decode_PARCEL_BASIS() {
 #
 # ROAD_SHAPE
 #
+# sms/sms-core/SMCoreDAL/SMMAL.h
+# sms/sms-core/SMCoreRP/RP_lib.h
+#
+# 8 BYTE[] RSHP_DIR
+#
+# (RSHP_DIR)
+# (T_MapShapeDir)
+# 0 UINT32 RECORD15_OFS
+# 4 UINT32 RECORD14_OFS
+# ..
+# 56 UINT32 RECORD1_OFS
+# 60 UINT32 RECORD0_OFS
+# 64 UINT32 INDEX_LINK_OFS
+# 68 UINT32 IDX_UPLINK2_OFS
+# 72 UINT32 IDX_UPLINK3_OFS
+# 76 UINT32 IDX_UPLINK4_OFS
+# 80 UINT32 IDX_UPLINK5_OFS
+# 84 UINT32 IDX_UPLINK6_OFS
+# 88 UINT32 IDX_UPLINK_OFS
+#
+# (RECORD)
+#
+# (INDEX_LINK)
+# (T_MapShapeIndexRecord)
+# 0 UINT32 SIZE
+# 4 UINT32 LINK_VOL
+#
+# (LV2UPPER_IDXLINK)
+#
+# (UPPER_LINK)
+# UPLINK_ID
+#
 # UINT16 ALL_SHAPE_CNT
 #
 # xxx OFS
 #
 
+decode_RSHP_DIR() {
+  local D=$1
+echo "RSHP_DIR=$D"
+
+  RECORD15_OFS="0x`SE32 ${D:0:8}`"
+  RECORD14_OFS="0x`SE32 ${D:$((4 * 2)):8}`"
+  RECORD13_OFS="0x`SE32 ${D:16:8}`"
+  RECORD12_OFS="0x`SE32 ${D:24:8}`"
+  RECORD11_OFS="0x`SE32 ${D:32:8}`"
+  RECORD10_OFS="0x`SE32 ${D:40:8}`"
+  RECORD9_OFS="0x`SE32 ${D:48:8}`"
+  RECORD8_OFS="0x`SE32 ${D:56:8}`"
+  RECORD7_OFS="0x`SE32 ${D:64:8}`"
+  RECORD6_OFS="0x`SE32 ${D:72:8}`"
+  RECORD5_OFS="0x`SE32 ${D:80:8}`"
+  RECORD4_OFS="0x`SE32 ${D:88:8}`"
+  RECORD3_OFS="0x`SE32 ${D:96:8}`"
+  RECORD2_OFS="0x`SE32 ${D:104:8}`"
+  RECORD1_OFS="0x`SE32 ${D:112:8}`"
+  RECORD0_OFS="0x`SE32 ${D:120:8}`"
+
+  INDEX_LINK_OFS="0x`SE32 ${D:$((64 * 2)):8}`"
+
+  IDX_UPLINK2_OFS="0x`SE32 ${D:$((68 * 2)):8}`"
+  IDX_UPLINK3_OFS="0x`SE32 ${D:$((72 * 2)):8}`"
+  IDX_UPLINK4_OFS="0x`SE32 ${D:$((76 * 2)):8}`"
+  IDX_UPLINK5_OFS="0x`SE32 ${D:$((80 * 2)):8}`"
+  IDX_UPLINK6_OFS="0x`SE32 ${D:$((84 * 2)):8}`"
+  IDX_UPLINK_OFS="0x`SE32 ${D:$((88 * 2)):8}`"
+}
+
+decode_INDEX_LINK() {
+  local D=$1
+  local N="0x`SE32 ${D:0:8}`"
+  local VOL="0x`SE32 ${D:8:8}`"
+
+  printf '# INDEX_LINK\n'
+  printf '# N=%d\n' $N
+  printf '# VOL=%d\n' $VOL
+}
+
 decode_ROAD_SHAPE_DATA() {
-  SD=$D # save
-  D="$1"
+  local D=$1
 echo "SHAPE_DATA=$D"
 
   SHAPE_DATA_SIZE="0x`SE32 ${D:0:8}`"
@@ -141,55 +213,86 @@ echo "RDSP=$RDSP"
 #    echo "RDSP[$i]=${RDSP:0:$(($T * 2))}"
 #    RDSP="${RDSP:$(($T * 2))}"
 #  done
-
-  D=$SD # restore
 }
 
 decode_ROAD_SHAPE() {
   echo "!! ROAD_SHAPE"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  SD="$D" # save
 
-  D="$2"
+  local D=$2
+
 echo "SHAPE=$D"
 
-  OFS="0x`SE32 ${D:$(((4 + 64) * 2)):8}`"
-echo "OFS=$OFS"
-  LINK_INDEX="${D:$((($OFS * 4) * 2))}"
-echo "LINK_INDEX=$LINK_INDEX"
-  LINKCNT="0x`SE32 ${LINK_INDEX:$((4 * 2)):8}`"
+####
+  # directory
 
-echo "LNKCNT=$LINKCNT"
+  decode_RSHP_DIR ${D:8:$((184 * 2))}
 
-  SHAPEINDEX="0x`SE32 ${LINK_INDEX:$((8 * 2)):8}`"
+  printf 'RECORD15_OFS=%d\n' $RECORD15_OFS
+  printf 'RECORD14_OFS=%d\n' $RECORD14_OFS
+  printf 'RECORD13_OFS=%d\n' $RECORD13_OFS
+  printf 'RECORD12_OFS=%d\n' $RECORD12_OFS
+  printf 'RECORD11_OFS=%d\n' $RECORD11_OFS
+  printf 'RECORD10_OFS=%d\n' $RECORD10_OFS
+  printf 'RECORD9_OFS=%d\n' $RECORD9_OFS
+  printf 'RECORD8_OFS=%d\n' $RECORD8_OFS
+  printf 'RECORD7_OFS=%d\n' $RECORD7_OFS
+  printf 'RECORD6_OFS=%d\n' $RECORD6_OFS
+  printf 'RECORD5_OFS=%d\n' $RECORD5_OFS
+  printf 'RECORD4_OFS=%d\n' $RECORD4_OFS
+  printf 'RECORD3_OFS=%d\n' $RECORD3_OFS
+  printf 'RECORD2_OFS=%d\n' $RECORD2_OFS
+  printf 'RECORD1_OFS=%d\n' $RECORD1_OFS
+  printf 'RECORD0_OFS=%d\n' $RECORD0_OFS
 
-echo "D=$D"
+  printf 'INDEX_LINK_OFS=%d\n' $INDEX_LINK_OFS
 
-  ALL_SHAPE_CNT="0x`SE32 ${D:0:4}`"
+  printf 'IDX_UPLINK2_OFS=%d\n' $IDX_UPLINK2_OFS
+  printf 'IDX_UPLINK3_OFS=%d\n' $IDX_UPLINK3_OFS
+  printf 'IDX_UPLINK4_OFS=%d\n' $IDX_UPLINK4_OFS
+  printf 'IDX_UPLINK5_OFS=%d\n' $IDX_UPLINK5_OFS
+  printf 'IDX_UPLINK6_OFS=%d\n' $IDX_UPLINK6_OFS
+  printf 'IDX_UPLINK_OFS=%d\n' $IDX_UPLINK_OFS
 
-  printf 'ALL_SHAPE_CNT=%d\n' $ALL_SHAPE_CNT
-  printf 'LINKCNT=%d\n' $LINKCNT
+  # decode shape
 
-# ROAD_KIND_CNT_MAX 16
-  ROAD_TYPE_OFS=()
-  for ((i=0;i<16;i++));do
-    ROAD_TYPE_OFS[$i]="0x`SE32 ${D:$(($i * 4 * 2)):8}`"
-  done
+  [ "$INV32" != $RECORD15_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD15_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD14_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD14_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD13_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD13_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD12_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD12_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD11_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD11_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD10_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD10_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD9_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD9_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD8_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD8_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD7_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD7_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD6_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD6_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD5_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD5_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD4_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD4_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD3_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD3_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD2_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD2_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD1_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD1_OFS * 4 * 2))}"
+  [ "$INV32" != $RECORD0_OFS ] &&
+  decode_ROAD_SHAPE_DATA "${D:$(($RECORD0_OFS * 4 * 2))}"
 
-  echo "ROAD_TYPE_OFS=${ROAD_TYPE_OFS[@]}"
+  # decode index
 
-  for ((i=0;i<16;i++));do
-
-printf 'ROAD_TYPE_OFS[%d]=%d\n' $i ${ROAD_TYPE_OFS[$i]}
-T=${ROAD_TYPE_OFS[$i]}
-   [ "$T" == $INV32  ] && continue
-    echo "CALL decode_ROAD_SHAPE_DATA i=$i"
-    echo "T=$(($T * 4 * 2))"
-    echo "P1=${D:$(($T * 4 * 2))}"
-    decode_ROAD_SHAPE_DATA "${D:$(($T * 4 * 2))}"
-  done
-
-  D="$SD" # restore
+  INDEX_LINK="${D:$((($INDEX_LINK_OFS * 4) * 2))}"
+  decode_INDEX_LINK $INDEX_LINK
 }
 
 #
