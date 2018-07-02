@@ -207,9 +207,28 @@ decode_ROAD_NETWORK() {
 #
 
 decode_BKGD() {
-  echo "# BKGD"
+  echo "!! BKGD"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notready
+  SD=$D # save
+  D=$2
+
+echo "D=$D"
+
+  BKGD_CNT="0x`SE32 ${D:0:8}`"
+
+  printf 'BKGD_CNT=%d\n' $BKGD_CNT
+
+  D="${D:8}"
+  for ((i=0;i<$BKGD_CNT;i++)); do
+    N="0x`SE16 ${D:0:4}`"
+    N=$(($N * 2 * 4))
+
+echo "BKGD[$i]=${D:0:$N}"
+
+    D=${D:${N}}
+  done
+
+  D=$SD
 }
 
 #
