@@ -33,6 +33,8 @@ VERBOSE=
 ZLIBFLATE="zlib-flate -uncompress"
 #ZLIBFLATE="openssl zlib -d"
 
+INV32="0xffffffff"
+
 while getopts k:hv OPT
 do
   case $OPT in
@@ -83,7 +85,7 @@ stripx() {
   echo "$T"
 }
 
-notready() {
+notReady() {
   echo "# NOT IMPLEMENTED!!"
 }
 
@@ -143,8 +145,6 @@ echo "RDSP=$RDSP"
   D=$SD # restore
 }
 
-INV32="0xffffffff"
-
 decode_ROAD_SHAPE() {
   echo "!! ROAD_SHAPE"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
@@ -195,11 +195,181 @@ T=${ROAD_TYPE_OFS[$i]}
 #
 # ROAD_NETWORK
 #
+# sms/sms-core/SMCoreDAL/SMMAL.h
+#
+# 8 BYTE[] RNET_DIR
+#
+# (RNET_DIR)
+# 4 UINT32 NWLINK_OFS
+# 8 UINT32 NWCNCT_OFS
+# 12 UINT32 NWLINKEX_OFS
+# 16
+# 18 UINT32 NWCNTEX_OFS
+# 20 UINT32 LINKREG_OFS
+# 24 UINT32 IDXLINK_OFS
+# 28 UINT32 IDXCNCT_OFS
+#
+# (LINK_DATA)
+# 0 UINT32 LINK_DATA_SIZE
+# 4 UINT32 LINK_RECORD_VOL
+# 8 BYTE[44]*N LINK_RECORD
+#
+# (CNCT_DATA)
+# 0 UNIT32 CNCT_DATA_SIZE
+# 4 UINT32 CNCT_RECORD_VOL
+# 8 BYTE[28]*N CNCT_RECORD
+#
+# (LINKEX_DATA)
+# 0 UINT342 LINKEX_DATA_SIZE
+# 4 UINT32 LINKEX_RECORD_VOL
+# 8 BYTE[]*N LINKEX_RECORD
+#
+# (IDXLINK)
+# 0 UINT342 IDXLINK_DATA_SIZE
+# 4 UINT32 IDXLINK_RECORD_VOL
+# 8 UINT16*N IDXLINK_RECORD
+#
+# (IDXCNCT)
+# 0 UINT342 IDXCNCT_DATA_SIZE
+# 4 UINT32 IDXCNCT_RECORD_VOL
+# 8 UINT16*N IDXCNCT_RECORD
+#
+
+decode_NWLINK() {
+  local D=$1
+  local N="0x`SE32 ${D:0:8}`"
+  local RECORD_VOL="0x`SE32 ${D:8:8}`"
+
+  printf '# NWLINK\n'
+  printf '# N=%d\n' $N
+  printf '# RECORD_VOL=%d\n' $RECORD_VOL
+  #printf '# RECORD=%s\n' ${D:16}
+  printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  for ((i=0;i<$RECORD_VOL;i++)); do
+    # record size 44
+    printf 'NWLINK[%d]=%s\n' $i ${D:$((16 + 88 * $i)):88}
+  done
+}
+
+decode_NWCNCT() {
+  local D=$1
+  local N="0x`SE32 ${D:0:8}`"
+  local RECORD_VOL="0x`SE32 ${D:8:8}`"
+
+  printf '# NWCNCT\n'
+  printf '# N=%d\n' $N
+  printf '# RECORD_VOL=%d\n' $RECORD_VOL
+  #printf '# RECORD=%s\n' ${D:16}
+  printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  for ((i=0;i<$RECORD_VOL;i++)); do
+    # record size 28
+    printf 'NWCNCT[%d]=%s\n' $i ${D:$((16 + 56 * $i)):56}
+  done
+}
+
+decode_NWLINKEX() {
+  printf '# NWLINKEX\n'
+  notReady
+}
+decode_NWCNTEX() {
+  printf '# NWCNTEX\n'
+  notReady
+}
+decode_LINKREG() {
+  printf '# LINKREG\n'
+  notReady
+}
+
+decode_IDXLINK() {
+  local D=$1
+  local N="0x`SE32 ${D:0:8}`"
+  local RECORD_VOL="0x`SE32 ${D:8:8}`"
+
+  printf '# IDXLINK\n'
+  printf '# N=%d\n' $N
+  printf '# RECORD_VOL=%d\n' $RECORD_VOL
+  #printf '# RECORD=%s\n' ${D:16}
+  printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  for ((i=0;i<$RECORD_VOL;i++)); do
+    # record size 2
+    echo "${D:$((16 + 4 * $i)):4}"
+    printf 'IDXLINK[%d]=%d\n' $i "0x`SE16 ${D:$((16 + 4 * $i)):4}`"
+  done
+}
+
+decode_IDXCNCT() {
+  local D=$1
+  local N="0x`SE32 ${D:0:8}`"
+  local RECORD_VOL="0x`SE32 ${D:8:8}`"
+
+  printf '# IDXLINK\n'
+  printf '# N=%d\n' $N
+  printf '# RECORD_VOL=%d\n' $RECORD_VOL
+  #printf '# RECORD=%s\n' ${D:16}
+  printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  for ((i=0;i<$RECORD_VOL;i++)); do
+    # record size 2
+    echo "${D:$((16 + 4 * $i)):4}"
+    printf 'IDXCNCT[%d]=%d\n' $i "0x`SE16 ${D:$((16 + 4 * $i)):4}`"
+  done
+}
+
+decode_RNET_DIR() {
+  local D=$1
+
+  NWLINK_OFS="0x`SE32 ${D:8:8}`"
+  NWCNCT_OFS="0x`SE32 ${D:16:8}`"
+  NWLINKEX_OFS="0x`SE32 ${D:24:8}`"
+  NWCNCTEX_OFS="0x`SE32 ${D:32:8}`"
+  LINKREG_OFS="0x`SE32 ${D:40:8}`"
+  IDXLINK_OFS="0x`SE32 ${D:48:8}`"
+  IDXCNCT_OFS="0x`SE32 ${D:56:8}`"
+}
 
 decode_ROAD_NETWORK() {
   echo "# ROAD_NETWORK"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notready
+
+  local D=$2
+
+  decode_RNET_DIR ${D:8}
+
+  printf 'NWLINK_OFS=%d\n' $NWLINK_OFS
+  printf 'NWCNCT_OFS=%d\n' $NWCNCT_OFS
+  printf 'NWLINKEX_OFS=%d\n' $NWLINKEX_OFS
+  printf 'NWCNCTEX_OFS=%d\n' $NWCNCTEX_OFS
+  printf 'LINKREG_OFS=%d\n' $LINKREG_OFS
+  printf 'IDXLINK_OFS=%d\n' $IDXLINK_OFS
+  printf 'IDXCNCT_OFS=%d\n' $IDXCNCT_OFS
+
+  if [ "$INV32" != $NWLINK_OFS ]; then
+    printf 'NWLINK=%s\n' ${D:$(($NWLINK_OFS * 2 * 4))}
+    decode_NWLINK ${D:$(($NWLINK_OFS * 2 * 4))}
+  fi
+  if [ "$INV32" != $NWCNCT_OFS ]; then
+    printf 'NWCNCT=%s\n' ${D:$(($NWCNCT_OFS * 2 * 4))}
+    decode_NWCNCT ${D:$(($NWCNCT_OFS * 2 * 4))}
+  fi
+  if [ "$INV32" != $NWLINKEX_OFS ]; then
+    printf 'NWLINKEX=%s\n' ${D:$(($NWLINKEX_OFS * 2 * 4))}
+    decode_NWLINKEX ${D:$(($NWLINKEX_OFS * 2 * 4))}
+  fi
+  if [ "$INV32" != $NWCNCTEX_OFS ]; then
+    printf 'NWCNCTEX=%s\n' ${D:$(($NWCNCTEX_OFS * 2 * 4))}
+    decode_NWCNCTEX ${D:$(($NWCNCTEX_OFS * 2 * 4))}
+  fi
+  if [ "$INV32" != $LINKREG_OFS ]; then
+    printf 'LINKREG=%s\n' ${D:$(($LINKREG_OFS * 2 * 4))}
+    decode_LINKREG ${D:$(($LINKREG_OFS * 2 * 4))}
+  fi
+  if [ "$INV32" != $IDXLINK_OFS ]; then
+    printf 'IDXLINK=%s\n' ${D:$(($IDXLINK_OFS * 2 * 4))}
+    decode_IDXLINK ${D:$(($IDXLINK_OFS * 2 * 4))}
+  fi
+  if [ "$INV32" != $IDXCNCT_OFS ]; then
+    printf 'IDXCNCT=%s\n' ${D:$(($IDXCNCT_OFS * 2 * 4))}
+    decode_IDXCNCT ${D:$(($IDXCNCT_OFS * 2 * 4))}
+  fi
 }
 
 #
@@ -238,7 +408,7 @@ echo "BKGD[$i]=${D:0:$N}"
 decode_BKGD_AREA_CLS() {
   echo "# BKGD_AREA_CLS"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notready
+  notReady
 }
 
 #
@@ -419,7 +589,7 @@ D=$D2
 decode_GUIDE() {
   echo "# GUIDE"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notready
+  notReady
 }
 
 #
@@ -429,7 +599,7 @@ decode_GUIDE() {
 decode_ROAD_DENSITY() {
   echo "# ROAD_DENSITY"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notready
+  notReady
 }
 
 #[ -n "$VERBOSE" ] && echo "KIND=$KIND"
