@@ -1,7 +1,7 @@
 #!/bin/bash
 
-#INFILE=../db/uk/p20.txt
-INFILE=../db/uk/p01.txt
+#INFILE=../data/uk/p20.txt
+INFILE=../data/uk/p01.txt
 DECODE=../tools/parcel-blob-decode.sh
 
 #  PARCEL_ID INTEGER NOT NULL,
