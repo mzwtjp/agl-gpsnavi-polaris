@@ -28,6 +28,7 @@ BKGD_AREA_CLS
 BLOB="06000100EEE3010030E50100196001001960010001008801"
 KIND="PARCEL_BASIS"
 VERBOSE=
+DSIZE= # debug size
 ZLIBFLATE="zlib-flate -uncompress"
 #ZLIBFLATE="openssl zlib -d"
 
@@ -87,7 +88,7 @@ stripx() {
 }
 
 NOT_READY() {
-  echo "# NOT IMPLEMENTED!!"
+  echo "## NOT IMPLEMENTED YET!!"
 }
 
 
@@ -151,8 +152,13 @@ decode_PARCEL_BASIS() {
 #
 # ROAD_SHAPE
 #
+# sms/sms-core/SMCoreMP/SMRoadShapeAnalyze.h
 # sms/sms-core/SMCoreDAL/SMMAL.h
 # sms/sms-core/SMCoreRP/RP_lib.h
+#
+# 0 UINT16 ALL_SHAPE_CNT
+# 4 UINT32*16 ROAD_TYPE_OFS
+# 68 UINT32 LINK_INDEX_OFS
 #
 # 8 BYTE[] RSHP_DIR
 #
@@ -177,6 +183,7 @@ decode_PARCEL_BASIS() {
 # (T_MapShapeIndexRecord)
 # 0 UINT32 SIZE
 # 4 UINT32 LINK_VOL
+# 8 UINT32*LINK_VOL LINK
 #
 # (LV2UPPER_IDXLINK)
 #
@@ -227,42 +234,164 @@ decode_INDEX_LINK() {
   printf '# INDEX_LINK\n'
   printf '# N=%d\n' $N
   printf '# VOL=%d\n' $VOL
+  D=${D:0:$(($N * 8))}
+  D=${D:8}
+  local LINKS=()
+  local i
+  for ((i=0;i<$VOL;i++)); do
+    LINKS[$i]="0x`SE32 ${D:0:8}`"
+    D=${D:8}
+  done
+  echo "LINKS=${LINKS[@]}"
+}
+
+decode_LKSP() {
+  local D=$1
+  local DATA_SIZE="0x`SE16 ${D:0:4}`"
+  local UPDATE_NO="0x`SE16 ${D:4:4}`"
+  local LINK_ID="0x`SE32 ${D:8:8}`"
+  local LINK_BASE_INFO1="0x`SE32 ${D:16:8}`"
+  local LINK_BASE_INFO2="0x`SE32 ${D:24:8}`"
+  local XX_INFO="0x`SE32 ${D:32:8}`"
+  local POINT_CNT="0x`SE16 ${D:40:4}`"
+  local DISP_FLG="0x`SE16 ${D:44:4}`"
+  local M=$(($DATA_SIZE * 4 - 24))
+  local POINT_X=()
+  local POINT_Y=()
+  local i
+  for ((i=0;i<$POINT_CNT;i++)); do
+    POINT_X[$i]="0x`SE16 ${D:$((48 + $i * 8)):4}`"
+    POINT_Y[$i]="0x`SE16 ${D:$((52 + $i * 8)):4}`"
+    M=$(($M - 4))
+  done
+
+  printf '# LKSP\n'
+  printf 'DATA_SIZE=%d\n' $DATA_SIZE
+  printf 'UPDATE_NO=%d\n' $UPDATE_NO
+  printf 'LINK_ID=0x%X\n' $LINK_ID
+  printf 'LINK_BASE_INFO1=0x%X\n' $LINK_BASE_INFO1
+  printf 'LINK_BASE_INFO2=0x%X\n' $LINK_BASE_INFO2
+  printf 'XX_INFO=0x%X\n' $XX_INFO
+  printf 'POINT_CNT=%d\n' $POINT_CNT
+  printf 'DISP_FLG=0x%X\n' $DISP_FLG
+  echo "POINT_X=${POINT_X[@]}"
+  echo "POINT_Y=${POINT_Y[@]}"
+
+  # XX_INFO
+  local AREA_CLASS_FLG=$((($XX_INFO >> 25) & 3))
+  local ROUTE_INFO_FLG=$((($XX_INFO >> 27) & 1))
+  local HIGHER_LINK_CNT=$((($XX_INFO >> 28) & 7))
+  printf 'AREA_CLASS_FLG=%d\n' $AREA_CLASS_FLG
+  printf 'ROUTE_INFO_FLG=%d\n' $ROUTE_INFO_FLG
+  printf 'HIGHER_LINK_CNT=%d\n' $HIGHER_LINK_CNT
+   
+  # uplv
+  local UPLV_HDL=${D:$((48 + $i * 8))}
+  if (($HIGHER_LINK_CNT > 0));then
+    local UPLV=()
+    for ((i=0;i<$HIGHER_LINK_CNT;i++)); do
+      UPLV[$i]="0x`SE32 ${UPLV_HDL:$(($i * 8)):8}`"
+      M=$(($M - 4))
+    done
+    echo "UPLV=${UPLV[@]}"
+  fi
+
+  # route
+  local ROUT_HDL=${UPLV_HDL:$(($HIGHER_LINK_CNT * 8))}
+  local ROUT_CNT="0x`SE16 ${ROUT_HDL:0:4}`"
+  local ROUT_ID=()
+  local ROUT_OFS=()
+  M=$(($M - 2))
+  for ((i=0;i<$ROUT_CNT;i++)); do
+    ROUT_ID[$i]="0x`SE32 ${ROUT_HDL:$((8 + $i * 16)):8}`"
+    ROUT_OFS[$i]="0x`SE32 ${ROUT_HDL:$((16 + $i * 16)):8}`"
+    M=$(($M - 8))
+  done
+  printf 'ROUT_CNT=%d\n' $ROUT_CNT
+  echo "ROUT_ID=${ROUT_ID[@]}"
+  echo "ROUT_OFS=${ROUT_OFS[@]}"
+
+  # area
+  local AREA_HDL=${ROUT_HDL:$((8 + $i * 16))}
+ 
+  printf 'M=%d\n' $M
 }
 
 decode_ROAD_SHAPE_DATA() {
   local D=$1
-echo "SHAPE_DATA=$D"
+#echo "SHAPE_DATA=$D"
 
   SHAPE_DATA_SIZE="0x`SE32 ${D:0:8}`"
-  SHAPE_DATA_SIZE="$(($SHAPE_DATA_SIZE * 4))"
   SHAPE_DATA_CNT="0x`SE32 ${D:8:8}`"
 
   printf 'SHAPE_DATA_SIZE=%d\n' $SHAPE_DATA_SIZE
   printf 'SHAPE_DATA_CNT=%d\n' $SHAPE_DATA_CNT
 
-  RDSP="${D:16}" # 8 x 2
+  local M=$(($SHAPE_DATA_SIZE * 4))
+echo "## SHAPE_DATA=${D:0:$M}"
+
+  local RDSP="${D:16}" # 8 x 2
 echo "RDSP=$RDSP"
-#  for ((i=0; i < $SHAPE_DATA_CNT;i++));do
-#    T="0x`SE16 ${RDSP:0:4}`"
-#    T=$(($T * 4))
-#    echo "RDSP[$i]=${RDSP:0:$(($T * 2))}"
-#    RDSP="${RDSP:$(($T * 2))}"
-#  done
+  M=$(($M - 8))
+  local T
+  for ((i=0; i < $SHAPE_DATA_CNT;i++));do
+    T="0x`SE16 ${RDSP:0:4}`"
+    T=$(($T * 4))
+    echo "RDSP[$i]=${RDSP:0:$(($T * 2))}"
+    decode_LKSP ${RDSP:0:$(($T * 2))}
+    RDSP="${RDSP:$(($T * 2))}"
+    M=$(($M - $T))
+  done
+  printf 'SHAPE_DATA M=%d\n' $M
+}
+
+decode_IDX_UPLINK() {
+  echo "## decode_IDX_UPLINK"
+  NOT_READY
+}
+decode_IDX_UPLINK2() {
+  echo "## decode_IDX_UPLINK2"
+  NOT_READY
+}
+decode_IDX_UPLINK3() {
+  echo "## decode_IDX_UPLINK3"
+  NOT_READY
+}
+decode_IDX_UPLINK4() {
+  echo "## decode_IDX_UPLINK4"
+  NOT_READY
+}
+decode_IDX_UPLINK5() {
+  echo "## decode_IDX_UPLINK5"
+  NOT_READY
+}
+decode_IDX_UPLINK6() {
+  echo "## decode_IDX_UPLINK6"
+  NOT_READY
 }
 
 decode_ROAD_SHAPE() {
   echo "!! ROAD_SHAPE"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
 
+  local N=$1
   local D=$2
 
+  M=$(($N * 4))
+echo "M=$M"
 echo "SHAPE=$D"
 
 ####
   # directory
 
-  decode_RSHP_DIR ${D:8:$((184 * 2))}
+  ALL_SHAPE_CNT="0x`SE16 ${D:0:4}`"
 
+  decode_RSHP_DIR ${D:8:$((92 * 2))} # (4 * 16 + 4 + 4 * 5 + 4)
+
+  M=$(($M - 92))
+echo "M=$M"
+
+  printf 'ALL_SHAPE_CNT=%d\n' $ALL_SHAPE_CNT
   printf 'RECORD15_OFS=%d\n' $RECORD15_OFS
   printf 'RECORD14_OFS=%d\n' $RECORD14_OFS
   printf 'RECORD13_OFS=%d\n' $RECORD13_OFS
@@ -326,8 +455,21 @@ echo "SHAPE=$D"
 
   # decode index
 
-  INDEX_LINK="${D:$((($INDEX_LINK_OFS * 4) * 2))}"
-  decode_INDEX_LINK $INDEX_LINK
+  [ "$INV32" != $INDEX_LINK_OFS ] &&
+  decode_INDEX_LINK "${D:$((($INDEX_LINK_OFS * 4) * 2))}"
+
+  [ "$INV32" != $IDX_UPLINK2_OFS ] &&
+  decode_IDX_UPLINK2 "${D:$((($IDX_UPLINK2_OFS * 4) * 2))}"
+  [ "$INV32" != $IDX_UPLINK3_OFS ] &&
+  decode_IDX_UPLINK3 "${D:$((($IDX_UPLINK3_OFS * 4) * 2))}"
+  [ "$INV32" != $IDX_UPLINK4_OFS ] &&
+  decode_IDX_UPLINK4 "${D:$((($IDX_UPLINK4_OFS * 4) * 2))}"
+  [ "$INV32" != $IDX_UPLINK5_OFS ] &&
+  decode_IDX_UPLINK5 "${D:$((($IDX_UPLINK5_OFS * 4) * 2))}"
+  [ "$INV32" != $IDX_UPLINK6_OFS ] &&
+  decode_IDX_UPLINK6 "${D:$((($IDX_UPLINK6_OFS * 4) * 2))}"
+  [ "$INV32" != $IDX_UPLINK_OFS ] &&
+  decode_IDX_UPLINK "${D:$((($IDX_UPLINK_OFS * 4) * 2))}"
 }
 
 #
@@ -885,45 +1027,46 @@ unpack_Blob() {
 
 case $KIND in
   "PARCEL_BASIS")
-    decode_PARCEL_BASIS $SIZE $DATA
+    decode_PARCEL_BASIS $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   "ROAD_SHAPE")
     unpack_Blob $DATA
-    decode_ROAD_SHAPE $SIZE $DATA
+    decode_ROAD_SHAPE $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   "ROAD_NETWORK")
     unpack_Blob $DATA
-    decode_ROAD_NETWORK $SIZE $DATA
+    decode_ROAD_NETWORK $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   "BKGD")
     unpack_Blob $DATA
-    decode_BKGD $SIZE $DATA
+    decode_BKGD $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   "BKGD_AREA_CLS")
     unpack_Blob $DATA
-    decode_BKGD_AREA_CLS $SIZE $DATA
+    decode_BKGD_AREA_CLS $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   "MARK")
     unpack_Blob $DATA
-    decode_MARK $SIZE $DATA
+    decode_MARK $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   "ROAD_NAME")
     unpack_Blob $DATA
-    decode_ROAD_NAME $SIZE $DATA
+    decode_ROAD_NAME $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   "NAME")
     unpack_Blob $DATA
-    decode_NAME $SIZE $DATA
+    decode_NAME $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   "GUIDE")
     unpack_Blob $DATA
-    decode_GUIDE $SIZE $DATA
+    decode_GUIDE $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   "ROAD_DENSITY")
     unpack_Blob $DATA
-    decode_DENSITY $SIZE $DATA
+    decode_DENSITY $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   *)
+    NOT_READY
     ;;
 esac
 
