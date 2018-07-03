@@ -4,8 +4,6 @@ usage_exit() {
   echo "Usage: parcel-blob-decode [-k kind] [blob]
 Interpret blob data in PARCEL table.
 
--d	decode
--e	encode
 -k	type of blob
 blob	blob data in hex string notation
  
@@ -88,7 +86,7 @@ stripx() {
   echo "$T"
 }
 
-notReady() {
+NOT_READY() {
   echo "# NOT IMPLEMENTED!!"
 }
 
@@ -96,24 +94,58 @@ notReady() {
 #
 # PARCEL_BASIS
 #
+# sms/sms-core/SMCoreMP/SMParcelBasisAnalyze.h
+#
+# 0 UNIT16 PCLB_SIZE
+# 2 BYTE PCLB_SEA_FLG
+# 3 BYTE PCLB_AREAREC_CNT
+# 4 UINT32 PCLB_REAL_LENGTH_T
+# 8 UINT32 PCLB_REAL_LENGTH_B
+# 12 UINT32 PCLB_REAL_LENGTH_L
+# 16 UINT32 PCLB_REAL_LENGTH_R
+# 20 UINT16 PCLB_COUNTRY_CODE_CNT
+#
 # See SMRoadShapeAnalyze.cpp
 #
 
 decode_PARCEL_BASIS() {
   echo "# PARCEL_BASIS"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  N=$1
-  D=$2
+  local D=$2
 
-  X_TOP="0x`SE32 ${D:8:8}`"  # read 4 bytes offset 4 bytes
-  X_BOTTOM="0x`SE32 ${D:16:8}`"  # " offset 8
-  Y_LEFT="0x`SE32 ${D:24:8}`"  # " offset 12
-  Y_RIGHT="0x`SE32 ${D:32:8}`"  # " offset 16
+  PCLB_SIZE="0x`SE16 ${D:0:4}`"
+  PCLB_SEA_FLG="0x`SE8 ${D:4:2}`"
+  PCLB_AREAREC_CNT="0x`SE8 ${D:6:2}`"
+  PCLB_REAL_LENGTH_T="0x`SE32 ${D:8:8}`"
+  PCLB_REAL_LENGTH_B="0x`SE32 ${D:16:8}`"
+  PCLB_REAL_LENGTH_L="0x`SE32 ${D:24:8}`"
+  PCLB_REAL_LENGTH_R="0x`SE32 ${D:32:8}`"
+  PCLB_COUNTRY_CODE_CNT="0x`SE16 ${D:40:4}`"
 
-  printf 'X_TOP: 0x%X\n' $X_TOP
-  printf 'X_BOTTOM: 0x%X\n' $X_BOTTOM
-  printf 'Y_LEFT: 0x%X\n' $Y_LEFT
-  printf 'Y_RIGHT: 0x%X\n' $Y_RIGHT
+  printf 'PCLB_SIZE=0x%X\n' $PCLB_SIZE
+  printf 'PCLB_SEA_FLG=0x%X\n' $PCLB_SEA_FLG
+  printf 'PCLB_AREAREC_CNT=%d\n' $PCLB_AREAREC_CNT
+  printf 'PCLB_REAL_LENGTH_T=0x%X\n' $PCLB_REAL_LENGTH_T
+  printf 'PCLB_REAL_LENGTH_B=0x%X\n' $PCLB_REAL_LENGTH_B
+  printf 'PCLB_REAL_LENGTH_L=0x%X\n' $PCLB_REAL_LENGTH_L
+  printf 'PCLB_REAL_LENGTH_R=0x%X\n' $PCLB_REAL_LENGTH_R
+  printf 'PCLB_COUNTRY_CODE_CNT=%d\n' $PCLB_COUNTRY_CODE_CNT
+
+  COUNTRY_CODE=()
+  local i
+  for ((i=0;i<$PCLB_COUNTRY_CODE_CNT;i++)); do
+    COUNTRY_CODE[$i]="0x`SE16 ${D:$((44 + $i * 4)):4}`"
+  done
+  echo "COUNTRY_CODE=${COUNTRY_CODE[@]}"
+
+  local M=$(((20 + ((((2 + $PCLB_COUNTRY_CODE_CNT * 2) + 3) << 2) >> 2)) * 2))
+  AREA_NO=()
+  local i
+  for ((i=0;i<$PCLB_AREAREC_CNT;i++)); do
+    AREA_NO[$i]="0x`SE8 ${D:$(($M + $i * 2)):2}`"
+  done
+  echo "AREA_NO=${AREA_NO[@]}"
+
 }
 
 #
@@ -377,15 +409,15 @@ decode_NWCNCT() {
 
 decode_NWLINKEX() {
   printf '# NWLINKEX\n'
-  notReady
+  NOT_READY
 }
 decode_NWCNTEX() {
   printf '# NWCNTEX\n'
-  notReady
+  NOT_READY
 }
 decode_LINKREG() {
   printf '# LINKREG\n'
-  notReady
+  NOT_READY
 }
 
 decode_IDXLINK() {
@@ -508,6 +540,9 @@ decode_BKGDOBJ() {
   local D=$1
   echo "BKGDOBJ=$D"
 
+  local M="0x`SE16 ${D:0:4}`"
+  M=$(($M << 2))
+
   local INFO="0x`SE16 ${D:4:4}`"
   local SORT_ID="0x`SE32 ${D:8:8}`"
   local ID="0x`SE32 ${D:16:8}`"
@@ -517,16 +552,19 @@ decode_BKGDOBJ() {
   local POINT_Y=() 
   POINT_X[0]="0x`SE16 ${D:32:4}`"
   POINT_Y[0]="0x`SE16 ${D:36:4}`"
+  M=$(($M - 20))
   local i
   for ((i=0;i<($POINT_CNT - 1);i++)); do
     if (($POINT_INFO == 0)); then
       # offset value byte pairs
       POINT_X[$i]="0x`SE8 ${D:$((40 + $i * 4)):2}`"
       POINT_Y[$i]="0x`SE8 ${D:$((42 + $i * 4)):2}`"
+      M=$(($M - 2))
     else
       # absolute values word pairs
       POINT_X[$i]="0x`SE16 ${D:$((40 + $i * 8)):4}`"
       POINT_Y[$i]="0x`SE16 ${D:$((44 + $i * 8)):4}`"
+      M=$(($M - 4))
     fi
   done
 
@@ -543,6 +581,9 @@ decode_BKGDOBJ() {
     printf '0x%X:0x%X,' ${POINT_X[$i]} ${POINT_Y[$i]}
   done
   printf '\n'
+
+  # check size
+  printf '#### M=%d\n', $M
 }
 
 decode_BKGDH() {
@@ -600,7 +641,7 @@ echo "D=$D"
 decode_BKGD_AREA_CLS() {
   echo "# BKGD_AREA_CLS"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notReady
+  NOT_READY
 }
 
 #
@@ -685,7 +726,13 @@ decode_RDNM() {
   printf 'RDNM_LANG_CNT=%d\n' $RDNM_LANG_CNT
   printf 'RDNM_ID=0x%X\n' $RDNM_ID
 
-  decode_RNLG ${D:16}
+  D=${D:16}
+  local i
+  for ((i=0;i<$RDNM_LANG_CNT;i++)); do
+    N=$((0x`SE16 ${D:0:4}` * 8)) # CNT * 4
+    decode_RNLG ${D:0:$N}
+    D=${D:$N}
+  done
 }
 
 decode_ROAD_NAME() {
@@ -714,15 +761,18 @@ decode_ROAD_NAME() {
 #
 
 decode_NMLG() {
-  D=$1
+  local D=$1
 
   echo "XXX=$D"
 
+  local M="0x`SE16 ${D:0:4}`" # SIZE
+ 
 #  NAME_SIZE="0x`SE16 ${D:0:4}`"
   NAME_LNG_CNT="0x`SE16 ${D:4:4}`"
   NAME_NAME_KIND="0x`SE32 ${D:8:8}`"
   NAME_ID="0x`SE32 ${D:16:8}`"
 
+  M=$(($M - 12)) # SIZE
   D=${D:24}
 
   echo "YYYY=$D"
@@ -781,7 +831,7 @@ D=$D2
 decode_GUIDE() {
   echo "# GUIDE"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notReady
+  NOT_READY
 }
 
 #
@@ -791,7 +841,7 @@ decode_GUIDE() {
 decode_ROAD_DENSITY() {
   echo "# ROAD_DENSITY"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  notReady
+  NOT_READY
 }
 
 #[ -n "$VERBOSE" ] && echo "KIND=$KIND"
@@ -799,55 +849,78 @@ decode_ROAD_DENSITY() {
 
 BLOB="`stripx "$BLOB"`"
 
-DHC_VOLUM_INFO="0x`SE32 ${BLOB:0:8}`" # 4 bytes
+DATA=$BLOB
+SIZE=$((${#DATA} / 8))
 
-echo "DHC_VOLUM_INFO: $DHC_VOLUM_INFO"
-SIZE="$(())"
-COMP="$((($DHC_VOLUM_INFO & 0xE0000000) >> 29))"
-SIZE="$((($DHC_VOLUM_INFO & ~0xE0000000)))"
+#
+# handle blobs with volume header
+#
+# DATA blob data without header and uncompressed if necessary
+# SIZE byte size of DATA
+#
 
-printf 'COMP=0x%X\n' $COMP
-printf 'SIZE=0x%X\n' $SIZE
+unpack_Blob() {
+  local D=$1
 
-DATA=${BLOB:8}
-echo "DATA=$DATA"
-if [ "$COMP" == "1" ]; then
-  DATA=`unzip_str $DATA`
-  echo "DATA2=$DATA"
-fi
-SIZE2=$((${#DATA} / 8))
-printf 'SIZE2=0x%X (0x%X)\n' $SIZE2 ${#DATA}
+  DHC_VOLUM_INFO="0x`SE32 ${D:0:8}`" # 4 bytes
+
+  echo "DHC_VOLUM_INFO: $DHC_VOLUM_INFO"
+
+  local COMP="$((($DHC_VOLUM_INFO & 0xE0000000) >> 29))"
+  SIZE="$((($DHC_VOLUM_INFO & ~0xE0000000)))"
+
+  printf 'COMP=0x%X\n' $COMP
+  printf 'SIZE=0x%X\n' $SIZE
+
+  DATA=${BLOB:8}
+  echo "DATA=$DATA"
+  if [ "$COMP" == "1" ]; then
+    DATA=`unzip_str $DATA`
+    echo "DATA2=$DATA"
+  fi
+  printf 'SIZE2=0x%X (0x%X)\n' $SIZE2 ${#DATA}
+
+  SIZE=$((${#DATA} / 8))
+}
 
 case $KIND in
   "PARCEL_BASIS")
-    #decode_PARCEL_BASIS $SIZE $DATA
-    decode_PARCEL_BASIS $SIZE2 $DATA
+    decode_PARCEL_BASIS $SIZE $DATA
     ;;
   "ROAD_SHAPE")
+    unpack_Blob $DATA
     decode_ROAD_SHAPE $SIZE $DATA
     ;;
   "ROAD_NETWORK")
+    unpack_Blob $DATA
     decode_ROAD_NETWORK $SIZE $DATA
     ;;
   "BKGD")
+    unpack_Blob $DATA
     decode_BKGD $SIZE $DATA
     ;;
   "BKGD_AREA_CLS")
+    unpack_Blob $DATA
     decode_BKGD_AREA_CLS $SIZE $DATA
     ;;
   "MARK")
+    unpack_Blob $DATA
     decode_MARK $SIZE $DATA
     ;;
   "ROAD_NAME")
+    unpack_Blob $DATA
     decode_ROAD_NAME $SIZE $DATA
     ;;
   "NAME")
+    unpack_Blob $DATA
     decode_NAME $SIZE $DATA
     ;;
   "GUIDE")
+    unpack_Blob $DATA
     decode_GUIDE $SIZE $DATA
     ;;
   "ROAD_DENSITY")
+    unpack_Blob $DATA
     decode_DENSITY $SIZE $DATA
     ;;
   *)

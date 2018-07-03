@@ -35,7 +35,7 @@ process() {
 echo "L=$L"
 
   echo "PARCEL_ID=${array[0]}"
-  echo "PARCEL_BASIS=${array[1]}"
+  checkblob "PARCEL_BASIS" "${array[1]}"
   checkblob "ROAD_SHAPE" "${array[2]}"
   checkblob "ROAD_NETWORK" "${array[3]}"
   checkblob "BKGD" "${array[4]}"
