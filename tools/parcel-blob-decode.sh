@@ -56,6 +56,9 @@ if [ ! -z "$1" ]; then
   BLOB="$1"
 fi
 
+SE8() {
+  echo "${1:0:2}"
+}
 SE16() {
   echo "${1:2:2}${1:0:2}"
 }
@@ -348,6 +351,7 @@ decode_NWLINK() {
   printf '# RECORD_VOL=%d\n' $RECORD_VOL
   #printf '# RECORD=%s\n' ${D:16}
   printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  local i
   for ((i=0;i<$RECORD_VOL;i++)); do
     # record size 44
     printf 'NWLINK[%d]=%s\n' $i ${D:$((16 + 88 * $i)):88}
@@ -364,6 +368,7 @@ decode_NWCNCT() {
   printf '# RECORD_VOL=%d\n' $RECORD_VOL
   #printf '# RECORD=%s\n' ${D:16}
   printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  local i
   for ((i=0;i<$RECORD_VOL;i++)); do
     # record size 28
     printf 'NWCNCT[%d]=%s\n' $i ${D:$((16 + 56 * $i)):56}
@@ -393,6 +398,7 @@ decode_IDXLINK() {
   printf '# RECORD_VOL=%d\n' $RECORD_VOL
   #printf '# RECORD=%s\n' ${D:16}
   printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  local i
   for ((i=0;i<$RECORD_VOL;i++)); do
     # record size 2
     echo "${D:$((16 + 4 * $i)):4}"
@@ -410,6 +416,7 @@ decode_IDXCNCT() {
   printf '# RECORD_VOL=%d\n' $RECORD_VOL
   #printf '# RECORD=%s\n' ${D:16}
   printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  local i
   for ((i=0;i<$RECORD_VOL;i++)); do
     # record size 2
     echo "${D:$((16 + 4 * $i)):4}"
@@ -478,12 +485,94 @@ decode_ROAD_NETWORK() {
 #
 # BKGD
 #
+# sms/sms-core/SMCoreMP/SMBkgdAnalyze.h
+# sms/sms-core/SMCoreMP/MP_DrawMap.cpp
+#
+# (BKGD)
+# SIZE
+# CNT
+# BKGDH * CNT
+#  
+# (BKGDH)
+# SIZE
+# CNT
+# BKGDOBJ * CNT
+# 
+# (BKGDOBJ)
+# SIZE
+# INFO
+# ...
+#
+
+decode_BKGDOBJ() {
+  local D=$1
+  echo "BKGDOBJ=$D"
+
+  local INFO="0x`SE16 ${D:4:4}`"
+  local SORT_ID="0x`SE32 ${D:8:8}`"
+  local ID="0x`SE32 ${D:16:8}`"
+  local POINT_CNT="0x`SE16 ${D:24:4}`"
+  local POINT_INFO="0x`SE16 ${D:28:4}`"
+  local POINT_X=() 
+  local POINT_Y=() 
+  POINT_X[0]="0x`SE16 ${D:32:4}`"
+  POINT_Y[0]="0x`SE16 ${D:36:4}`"
+  local i
+  for ((i=0;i<($POINT_CNT - 1);i++)); do
+    if (($POINT_INFO == 0)); then
+      # offset value byte pairs
+      POINT_X[$i]="0x`SE8 ${D:$((40 + $i * 4)):2}`"
+      POINT_Y[$i]="0x`SE8 ${D:$((42 + $i * 4)):2}`"
+    else
+      # absolute values word pairs
+      POINT_X[$i]="0x`SE16 ${D:$((40 + $i * 8)):4}`"
+      POINT_Y[$i]="0x`SE16 ${D:$((44 + $i * 8)):4}`"
+    fi
+  done
+
+  printf 'BKGDOBJ_INFO=0x%X\n' $INFO
+  printf 'BKGDOBJ_SORT_ID=0x%X\n' $SORT_ID
+  printf 'BKGDOBJ_ID=0x%X\n' $ID
+  printf 'BKGDOBJ_POINT_CNT=%d\n' $POINT_CNT
+  printf 'BKGDOBJ_POINT_INFO=%d\n' $POINT_INFO
+  echo "POINT_X=${POINT_X[@]}"
+  echo "POINT_Y=${POINT_Y[@]}"
+  printf 'POINTS='
+  local i
+  for ((i=0;i<$POINT_CNT;i++)); do
+    printf '0x%X:0x%X,' ${POINT_X[$i]} ${POINT_Y[$i]}
+  done
+  printf '\n'
+}
+
+decode_BKGDH() {
+  local D=$1
+  local SIZE="0x`SE16 ${D:0:4}`"
+  local CNT="0x`SE16 ${D:4:4}`"
+
+  printf '### BKGDH SIZE=%d (%d)\n' $SIZE $(($SIZE * 4))
+  printf '### BKGDH CNT=%d\n' $CNT
+
+  local M=4
+  D=${D:8}
+  local i
+  for ((i=0;i<$CNT;i++)); do
+    N="0x`SE16 ${D:0:4}`"
+    N=$(($N * 4))
+    M=$(($M + $N))
+    printf '# BKGDOBJ[%d] (%d)\n' $i $N 
+
+    N=$(($N * 2))
+    decode_BKGDOBJ ${D:0:$N}
+    D=${D:$N}
+  done
+  printf '### M=%d <-> %d\n' $M $((SIZE * 4))
+}
 
 decode_BKGD() {
   echo "!! BKGD"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  SD=$D # save
-  D=$2
+  local D=$2
 
 echo "D=$D"
 
@@ -494,14 +583,14 @@ echo "D=$D"
   D="${D:8}"
   for ((i=0;i<$BKGD_CNT;i++)); do
     N="0x`SE16 ${D:0:4}`"
-    N=$(($N * 2 * 4))
+    N=$(($N * 4))
+    printf '# BKGDH[%d] (%d)\n' $i  $N
+    N=$(($N * 2))
 
-echo "BKGD[$i]=${D:0:$N}"
+    decode_BKGDH ${D:0:$N}
 
-    D=${D:${N}}
+    D=${D:$N}
   done
-
-  D=$SD
 }
 
 #
