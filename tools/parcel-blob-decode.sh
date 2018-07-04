@@ -32,7 +32,7 @@ DSIZE= # debug size
 ZLIBFLATE="zlib-flate -uncompress"
 #ZLIBFLATE="openssl zlib -d"
 
-INV32="0xffffffff"
+readonly INV32="0xffffffff"
 
 while getopts k:hv OPT
 do
@@ -88,7 +88,7 @@ stripx() {
 }
 
 NOT_READY() {
-  echo "## NOT IMPLEMENTED YET!!"
+  echo "##E NOT IMPLEMENTED YET!!"
 }
 
 
@@ -146,7 +146,6 @@ decode_PARCEL_BASIS() {
     AREA_NO[$i]="0x`SE8 ${D:$(($M + $i * 2)):2}`"
   done
   echo "AREA_NO=${AREA_NO[@]}"
-
 }
 
 #
@@ -476,6 +475,8 @@ echo "M=$M"
 # ROAD_NETWORK
 #
 # sms/sms-core/SMCoreDAL/SMMAL.h
+# sms/sms-core/SMCoreDM/RT/RT_MapLib.c
+# sms/sms-core/SMCoreRP/RP_lib.h
 #
 # 8 BYTE[] RNET_DIR
 #
@@ -483,8 +484,7 @@ echo "M=$M"
 # 4 UINT32 NWLINK_OFS
 # 8 UINT32 NWCNCT_OFS
 # 12 UINT32 NWLINKEX_OFS
-# 16
-# 18 UINT32 NWCNTEX_OFS
+# 16 UINT32 NWCNTEX_OFS
 # 20 UINT32 LINKREG_OFS
 # 24 UINT32 IDXLINK_OFS
 # 28 UINT32 IDXCNCT_OFS
@@ -515,10 +515,68 @@ echo "M=$M"
 # 8 UINT16*N IDXCNCT_RECORD
 #
 
+decode_NWLINK_DATA() {
+  local D=$1
+  local M=$((${#D} / 2))
+  printf 'M=%d\n' $M
+
+  local STID="0x`SE32 ${D:0:8}`"
+  local EDID="0x`SE32 ${D:8:8}`"
+  local STIDX="0x`SE16 ${D:16:4}`"
+  local EDIDX="0x`SE16 ${D:20:4}`"
+  local ID="0x`SE32 ${D:24:8}`"
+  local LIMIT="0x`SE32 ${D:32:8}`"
+  local ST_X="0x`SE16 ${D:40:4}`"
+  local ST_Y="0x`SE16 ${D:44:4}`"
+  local ED_X="0x`SE16 ${D:48:4}`"
+  local ED_Y="0x`SE16 ${D:52:4}`"
+  local T="0x`SE32 ${D:56:8}`"
+  local STDIR=$((($T >> 24) & 0xff))
+  local EDDIR=$((($T >> 16) & 0xff))
+  local TRAVELTIME=$(($T & 0x3fff))
+  T="0x`SE32 ${D:64:8}`"
+  local LINKEXOFSFLG=$((($T >> 31) & 0x1))
+  local EXOFS=$(($T & 0x7fffffff))
+  local FORMOFS=$T
+  M=$(($M - 36))
+
+  printf 'STID=0x%X\n' $STID
+  printf 'EDID=0x%X\n' $EDID
+  printf 'STIDX=0x%X\n' $STIDX
+  printf 'EDIDX=0x%X\n' $EDIDX
+  printf 'ID=0x%X\n' $ID
+  printf 'LIMIT=0x%X\n' $LIMIT
+  printf 'ST_X=0x%X\n' $ST_X
+  printf 'ST_Y=0x%X\n' $ST_Y
+  printf 'ED_X=0x%X\n' $ED_X
+  printf 'ED_Y=0x%X\n' $ED_Y
+  printf 'STDIR=0x%X\n' $STDIR
+  printf 'EDDIR=0x%X\n' $EDDIR
+  printf 'TRAVELTIME=0x%X\n' $TRAVELTIME
+  printf 'LINKEXOFSFLG=0x%X\n' $LINKESOFSFLG
+  printf 'EXOFS=0x%X\n' $EXOFS
+  printf 'FORMOFS=0x%X\n' $FORMOFS
+
+  # T_MapBaseLinkInfo
+  # BASE1: ROAD_TYPE,LINK1_TYPE, etc.
+  # BASE2: LINKDIST, etc.
+  local BASE1="0x`SE32 ${D:72:8}`"
+  local BASE2="0x`SE32 ${D:80:8}`"
+  M=$(($M - 8))
+
+  printf 'BASE1=0x%X\n' $BASE1
+  printf 'BASE2=0x%X\n' $BASE2
+
+  printf '# NWLINK_DATA M=%d\n' $M
+  NOT_READY
+}
+
 decode_NWLINK() {
   local D=$1
   local N="0x`SE32 ${D:0:8}`"
   local RECORD_VOL="0x`SE32 ${D:8:8}`"
+  local M=$(($N * 4))
+  M=$(($M - 8))
 
   printf '# NWLINK\n'
   printf '# N=%d\n' $N
@@ -529,13 +587,53 @@ decode_NWLINK() {
   for ((i=0;i<$RECORD_VOL;i++)); do
     # record size 44
     printf 'NWLINK[%d]=%s\n' $i ${D:$((16 + 88 * $i)):88}
+    decode_NWLINK_DATA ${D:$((16 + 88 * $i)):88}
+    M=$(($M - 44))
   done
+  printf '# NWLINK M=%d\n' $M
+}
+
+decode_NWCNCT_DATA() {
+  local D=$1
+  local M=$((${#D} / 2))
+  printf 'M=%d\n' $M
+
+  local STID="0x`SE32 ${D:0:8}`"
+  local EDID="0x`SE32 ${D:8:8}`"
+  local STIDX="0x`SE16 ${D:16:4}`"
+  local EDIDX="0x`SE16 ${D:20:4}`"
+  local ID="0x`SE32 ${D:24:8}`"
+  local EXOFS="0x`SE32 ${D:32:8}`"
+  M=$(($M - 20))
+
+  printf 'STID=0x%X\n' $STID
+  printf 'EDID=0x%X\n' $EDID
+  printf 'STIDX=0x%X\n' $STIDX
+  printf 'EDIDX=0x%X\n' $EDIDX
+  printf 'ID=0x%X\n' $ID
+  printf 'EXOFS=0x%X\n' $EXOFS
+
+  local COORDX="0x`SE16 ${D:40:4}`"
+  local COORDY="0x`SE16 ${D:44:4}`"
+  local COUNTRY="0x`SE16 ${D:48:4}`"
+  local RESERVED="0x`SE16 ${D:52:4}`"
+  M=$(($M - 8))
+
+  printf 'COORDX=0x%X\n' $COORDX
+  printf 'COORDY=0x%X\n' $COORDY
+  printf 'COUNTRY=0x%X\n' $COUNTRY
+  printf 'RESERVED=0x%X\n' $RESERVED
+
+  printf '# NWCNCT_DATA M=%d\n' $M
+  NOT_READY
 }
 
 decode_NWCNCT() {
   local D=$1
   local N="0x`SE32 ${D:0:8}`"
   local RECORD_VOL="0x`SE32 ${D:8:8}`"
+  local M=$(($N * 4))
+  M=$(($M - 8))
 
   printf '# NWCNCT\n'
   printf '# N=%d\n' $N
@@ -546,7 +644,10 @@ decode_NWCNCT() {
   for ((i=0;i<$RECORD_VOL;i++)); do
     # record size 28
     printf 'NWCNCT[%d]=%s\n' $i ${D:$((16 + 56 * $i)):56}
+    decode_NWCNCT_DATA ${D:$((16 + 56 * $i)):56}
+    M=$(($M - 28))
   done
+  printf '# NWCNCT M=%d\n' $M
 }
 
 decode_NWLINKEX() {
@@ -566,36 +667,46 @@ decode_IDXLINK() {
   local D=$1
   local N="0x`SE32 ${D:0:8}`"
   local RECORD_VOL="0x`SE32 ${D:8:8}`"
+  local M=$((8 + 2 * $RECORD_VOL))
+  M=$(($M - 8))
 
   printf '# IDXLINK\n'
   printf '# N=%d\n' $N
   printf '# RECORD_VOL=%d\n' $RECORD_VOL
-  #printf '# RECORD=%s\n' ${D:16}
-  printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  printf '# D=%s\n' ${D:16:$((N * 8 - 16))}
+  local IDXLINK=()
   local i
   for ((i=0;i<$RECORD_VOL;i++)); do
     # record size 2
-    echo "${D:$((16 + 4 * $i)):4}"
-    printf 'IDXLINK[%d]=%d\n' $i "0x`SE16 ${D:$((16 + 4 * $i)):4}`"
+    #echo "${D:$((16 + 4 * $i)):4}"
+    IDXLINK[$i]="0x`SE16 ${D:$((16 + 4 * $i)):4}`"
+    M=$(($M - 2))
   done
+  echo "IDXLINK=${IDXLINK[@]}"
+  printf '# IDXLINK M=%d\n' $M
 }
 
 decode_IDXCNCT() {
   local D=$1
   local N="0x`SE32 ${D:0:8}`"
   local RECORD_VOL="0x`SE32 ${D:8:8}`"
+  local M=$((8 + 2 * $RECORD_VOL))
+  M=$(($M - 8))
 
-  printf '# IDXLINK\n'
+  printf '# IDXCNCT\n'
   printf '# N=%d\n' $N
   printf '# RECORD_VOL=%d\n' $RECORD_VOL
-  #printf '# RECORD=%s\n' ${D:16}
-  printf '# RECORD=%s\n' ${D:16:$((N * 8 - 16))}
+  printf '# D=%s\n' ${D:16:$((N * 8 - 16))}
   local i
   for ((i=0;i<$RECORD_VOL;i++)); do
     # record size 2
-    echo "${D:$((16 + 4 * $i)):4}"
+    #echo "${D:$((16 + 4 * $i)):4}"
     printf 'IDXCNCT[%d]=%d\n' $i "0x`SE16 ${D:$((16 + 4 * $i)):4}`"
+    IDXCNCT[$i]="0x`SE16 ${D:$((16 + 4 * $i)):4}`"
+    M=$(($M - 2))
   done
+  echo "IDXCNCT=${IDXCNCT[@]}"
+  printf '# IDXCNCT M=%d\n' $M
 }
 
 decode_RNET_DIR() {

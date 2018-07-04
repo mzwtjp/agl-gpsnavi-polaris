@@ -1,9 +1,38 @@
 #!/bin/bash
 
+usage_exit() {
+  echo "Usage: test-parcel-blob.sh [-r] [-d cmd] [-e cmd] [parcel.txt]
+
+-r		Round-trip.  Compare original blob with decoded and again encoded output.
+-d		Specify decode script.  Default $DECODE.
+-e		Specify encode script.  Default $ENCODE.
+parcel.txt	.dump output of PARCEL table.
+" 1>&2
+  exit 1
+}
+
 #INFILE=../data/uk/PARCEL.txt
 #INFILE=../data/uk/PARCEL_100.txt
 INFILE=../data/uk/PARCEL_500.txt
 DECODE=../tools/parcel-blob-decode.sh
+ENCODE=../tools/parcel-blob-encode.sh
+
+TMP_ENC=./tmp-enc.txt
+TMP_DEC=./tmp-dec.txt
+FLG_RT=
+
+while getopts d:e:hr OPT
+do
+  case $OPT in
+    r)
+      FLG_RT=1
+      ;;
+    h)
+      usage_exit
+      ;;
+  esac
+done
+shift $((OPTIND - 1))
 
 #  PARCEL_ID INTEGER NOT NULL,
 #  PARCEL_BASIS BLOB NOT NULL,
@@ -18,12 +47,31 @@ DECODE=../tools/parcel-blob-decode.sh
 #  ROAD_DENSITY BLOB,
 #  ROAD_BASE_VERSION INTEGER,
 #  BKGD_BASE_VERSION INTEGER,
+#
 
 checkblob() {
   echo "# check blob $1"
   echo "# $2"
-  if [ "$2" != "NULL" ]; then
-    $DECODE -k "$1" "$2"
+  if [ "$2" == "NULL" ]; then
+    return
+  fi
+
+  local TYPE=$1
+  local BLOB_IN=$2
+  local BLOB_OUT
+
+  if [ "$FLG_RT" != "" ]; then
+    rm -f $TMPFILE
+    $DECODE -k "$TYPE" "$BLOB_IN" | tee $TMP_DEC
+    cat $TMP_DEC | $ENCODE | tee $TMP_ENC
+    BLOB_OUT="X'"
+    BLOB_OUT+="`grep '^BLOB_OUT' $TMP_ENC | sed 's/^BLOB_OUT=//'`"
+    BLOB_OUT+="'"
+    
+    echo "# BLOB_IN=$BLOB_IN"
+    echo "# BLOB_OUT=$BLOB_OUT"
+  else
+    $DECODE -k "$TYPE" "$BLOB_IN"
   fi
 }
 

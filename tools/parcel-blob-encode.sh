@@ -21,83 +21,14 @@ DENSITY
 MARK
 PARCEL_BASIS
 BKGD_AREA_CLS
-"
+" 1>&2
   exit 1
 }
 
 #VERBOSE=
 VERBOSE=1
-BLOB=
-
-#
-#
-#
-
-encode_PARCEL_BASIS() {
-}
-
-#
-#
-#
-
-encode_ROAD_SHAPE() {
-}
-
-#
-#
-#
-
-encode_ROAD_NETWORK() {
-}
-
-#
-#
-#
-
-encode_BKGD() {
-}
-
-#
-#
-#
-
-encode_BKGD_AREA_CLS() {
-}
-
-#
-#
-#
-
-encode__MARK() {
-}
-
-#
-#
-#
-
-encode_ROAD_NAME() {
-}
-
-#
-#
-#
-
-encode_NAME() {
-}
-
-#
-#
-#
-
-encode_GUIDE() {
-}
-
-#
-#
-#
-
-encode_DENSITY() {
-}
+#BLOB=
+BLOB="00112233445566778899aabbccddeeff"
 
 while getopts k:hv OPT
 do
@@ -115,6 +46,100 @@ do
 done
 
 shift $((OPTIND -1))
+
+NOT_READY() {
+  echo "## NOT IMPLEMENTED YET!!"
+}
+
+#
+#
+#
+
+encode_PARCEL_BASIS() {
+  echo "# encode_PARCEL_BASIS"
+  NOT_READY
+}
+
+#
+#
+#
+
+encode_ROAD_SHAPE() {
+  echo "# encode_ROAD_SHAPE"
+  NOT_READY
+}
+
+#
+#
+#
+
+encode_ROAD_NETWORK() {
+  echo "# encode_ROAD_NETWORK"
+  NOT_READY
+}
+
+#
+#
+#
+
+encode_BKGD() {
+  echo "# encode_BKGD"
+  NOT_READY
+}
+
+#
+#
+#
+
+encode_BKGD_AREA_CLS() {
+  echo "# encode_BKGD_AREA_CLS"
+  NOT_READY
+}
+
+#
+#
+#
+
+encode_MARK() {
+  echo "# encode_MARK"
+  NOT_READY
+}
+
+#
+#
+#
+
+encode_ROAD_NAME() {
+  echo "# encode_ROAD_NAME"
+  NOT_READY
+}
+
+#
+#
+#
+
+encode_NAME() {
+  echo "# encode_NAME"
+  NOT_READY
+}
+
+#
+#
+#
+
+encode_GUIDE() {
+  echo "# encode_GUIDE"
+  NOT_READY
+}
+
+#
+#
+#
+
+encode_DENSITY() {
+  echo "# encode_DENSITY"
+  NOT_READY
+}
 
 echo "KIND=$KIND"
 
@@ -155,5 +180,5 @@ esac
 
 # final output
 
-echo "BLOB=$BLOB"
+echo "BLOB_OUT=$BLOB"
 
