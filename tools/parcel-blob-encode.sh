@@ -29,6 +29,7 @@ BKGD_AREA_CLS
 VERBOSE=1
 #BLOB=
 BLOB="00112233445566778899aabbccddeeff"
+INFILE=
 
 while getopts k:hv OPT
 do
@@ -177,6 +178,19 @@ case $KIND in
   *)
     ;;
 esac
+
+process() {
+  local L=$1
+  echo "#I $L"
+}
+
+# read lines from stdin or file
+
+cat $INFILE | \
+    while IFS= read -r line
+do
+  process "$line"
+done
 
 # final output
 

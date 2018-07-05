@@ -63,13 +63,19 @@ checkblob() {
   if [ "$FLG_RT" != "" ]; then
     rm -f $TMPFILE
     $DECODE -k "$TYPE" "$BLOB_IN" | tee $TMP_DEC
-    cat $TMP_DEC | $ENCODE | tee $TMP_ENC
+    cat $TMP_DEC | $ENCODE -k "$TYPE" | tee $TMP_ENC
     BLOB_OUT="X'"
     BLOB_OUT+="`grep '^BLOB_OUT' $TMP_ENC | sed 's/^BLOB_OUT=//'`"
     BLOB_OUT+="'"
     
     echo "# BLOB_IN=$BLOB_IN"
     echo "# BLOB_OUT=$BLOB_OUT"
+    printf '# VERIFY: '
+    if [ "$BLOB_IN" == "$BLOB_OUT" ]; then
+        printf 'OK\n'
+    else
+        printf 'NG\n'
+    fi
   else
     $DECODE -k "$TYPE" "$BLOB_IN"
   fi

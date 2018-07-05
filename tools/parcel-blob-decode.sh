@@ -96,6 +96,8 @@ NOT_READY() {
 # PARCEL_BASIS
 #
 # sms/sms-core/SMCoreMP/SMParcelBasisAnalyze.h
+# sms/sms-core/SMCoreDM/RT/RT_TblMain.c
+# See SMRoadShapeAnalyze.cpp
 #
 # 0 UNIT16 PCLB_SIZE
 # 2 BYTE PCLB_SEA_FLG
@@ -105,8 +107,6 @@ NOT_READY() {
 # 12 UINT32 PCLB_REAL_LENGTH_L
 # 16 UINT32 PCLB_REAL_LENGTH_R
 # 20 UINT16 PCLB_COUNTRY_CODE_CNT
-#
-# See SMRoadShapeAnalyze.cpp
 #
 
 decode_PARCEL_BASIS() {
@@ -126,10 +126,16 @@ decode_PARCEL_BASIS() {
   printf 'PCLB_SIZE=0x%X\n' $PCLB_SIZE
   printf 'PCLB_SEA_FLG=0x%X\n' $PCLB_SEA_FLG
   printf 'PCLB_AREAREC_CNT=%d\n' $PCLB_AREAREC_CNT
-  printf 'PCLB_REAL_LENGTH_T=0x%X\n' $PCLB_REAL_LENGTH_T
-  printf 'PCLB_REAL_LENGTH_B=0x%X\n' $PCLB_REAL_LENGTH_B
-  printf 'PCLB_REAL_LENGTH_L=0x%X\n' $PCLB_REAL_LENGTH_L
-  printf 'PCLB_REAL_LENGTH_R=0x%X\n' $PCLB_REAL_LENGTH_R
+
+  printf 'PCLB_REAL_LENGTH_T=0x%X\n# %s\n' $PCLB_REAL_LENGTH_T \
+    "`echo \"scale=4; $(($PCLB_REAL_LENGTH_T)) / 10000\" | bc`"
+  printf 'PCLB_REAL_LENGTH_B=0x%X\n# %s\n' $PCLB_REAL_LENGTH_B \
+    "`echo \"scale=4; $(($PCLB_REAL_LENGTH_B)) / 10000\" | bc`"
+  printf 'PCLB_REAL_LENGTH_L=0x%X\n# %s\n' $PCLB_REAL_LENGTH_L \
+    "`echo \"scale=4; $(($PCLB_REAL_LENGTH_L)) / 10000\" | bc`"
+  printf 'PCLB_REAL_LENGTH_R=0x%X\n# %s\n' $PCLB_REAL_LENGTH_R \
+    "`echo \"scale=4; $(($PCLB_REAL_LENGTH_R)) / 10000\" | bc`"
+
   printf 'PCLB_COUNTRY_CODE_CNT=%d\n' $PCLB_COUNTRY_CODE_CNT
 
   COUNTRY_CODE=()
@@ -807,7 +813,8 @@ decode_BKGDOBJ() {
   POINT_Y[0]="0x`SE16 ${D:36:4}`"
   M=$(($M - 20))
   local i
-  for ((i=0;i<($POINT_CNT - 1);i++)); do
+  #for ((i=0;i<($POINT_CNT - 1);i++)); do
+  for ((i=0;i<$POINT_CNT - 1;i++)); do
     if (($POINT_INFO == 0)); then
       # offset value byte pairs
       POINT_X[$i]="0x`SE8 ${D:$((40 + $i * 4)):2}`"
