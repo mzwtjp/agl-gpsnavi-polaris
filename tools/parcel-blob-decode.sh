@@ -251,6 +251,8 @@ decode_INDEX_LINK() {
 }
 
 decode_LKSP() {
+  printf '## decode_LKSP\n'
+
   local D=$1
   local DATA_SIZE="0x`SE16 ${D:0:4}`"
   local UPDATE_NO="0x`SE16 ${D:4:4}`"
@@ -275,7 +277,38 @@ decode_LKSP() {
   printf 'UPDATE_NO=%d\n' $UPDATE_NO
   printf 'LINK_ID=0x%X\n' $LINK_ID
   printf 'LINK_BASE_INFO1=0x%X\n' $LINK_BASE_INFO1
+  printf '# BYPASS_FLG=%d\n' $(($LINK_BASE_INFO1 & 1))
+  printf '# TOLL_FLG=%d\n' $((($LINK_BASE_INFO1 >> 1) & 1))
+  printf '# IPD_FLG=%d\n' $((($LINK_BASE_INFO1 >> 2) & 1))
+  printf '# PLAN_ROAD=%d\n' $((($LINK_BASE_INFO1 >> 3) & 1))
+  printf '# UTURN_LINK=%d\n' $((($LINK_BASE_INFO1 >> 4) & 1))
+  printf '# UNDER_ROAD_LINK=%d\n' $((($LINK_BASE_INFO1 >> 5) & 1))
+  printf '# HIGH_LEVEL_LINK=%d\n' $((($LINK_BASE_INFO1 >> 6) & 1))
+  printf '# BRIDGE_LINK=%d\n' $((($LINK_BASE_INFO1 >> 7) & 1))
+  printf '# TUNNEL_LINK=%d\n' $((($LINK_BASE_INFO1 >> 8) & 1))
+  printf '# MEDIAN_FLG=%d\n' $((($LINK_BASE_INFO1 >> 9) & 3))
+  printf '# INFRA_LINK_FLG=%d\n' $((($LINK_BASE_INFO1 >> 11) & 1))
+  printf '# DTS_FLG=%d\n' $((($LINK_BASE_INFO1 >> 12) & 1))
+  printf '# PASS_FLG=%d\n' $((($LINK_BASE_INFO1 >> 13) & 1))
+  printf '# ONE_WAY_FLG=%d\n' $((($LINK_BASE_INFO1 >> 14) & 3))
+  printf '# LINK_KIND4=%d\n' $((($LINK_BASE_INFO1 >> 16) & 3))
+  printf '# LINK_KIND3=%d\n' $((($LINK_BASE_INFO1 >> 18) & 7))
+  printf '# LINK_KIND2=%d\n' $((($LINK_BASE_INFO1 >> 21) & 7))
+  printf '# LINK_KIND1=%d\n' $((($LINK_BASE_INFO1 >> 24) & 15))
+  printf '# ROAD_KIND=%d\n' $((($LINK_BASE_INFO1 >> 28) & 15))
   printf 'LINK_BASE_INFO2=0x%X\n' $LINK_BASE_INFO2
+  printf '# COUNTRY_CODE=%d\n' $(($LINK_BASE_INFO2 & 7))
+  printf '# LANE_CNT=%d\n' $((($LINK_BASE_INFO2 >> 3) & 3))
+  printf '# OTHER_REGULATION=%d\n' $((($LINK_BASE_INFO2 >> 5) & 1))
+  printf '# MILITARY_AREA=%d\n' $((($LINK_BASE_INFO2 >> 6) & 1))
+  printf '# FREEZE=%d\n' $((($LINK_BASE_INFO2 >> 7) & 1))
+  printf '# FLOODED=%d\n' $((($LINK_BASE_INFO2 >> 8) & 1))
+  printf '# SCHOOL_ZONE=%d\n' $((($LINK_BASE_INFO2 >> 9) & 1))
+  printf '# FUNCTION_CLASS=%d\n' $((($LINK_BASE_INFO2 >> 10) & 7))
+  printf '# WIDTH_CODE=%d\n' $((($LINK_BASE_INFO2 >> 13) & 7))
+  printf '# LINK_LENGTH=%d\n' $((($LINK_BASE_INFO2 >> 16) & 4095))
+  printf '# LINK_LENGTH_UNIT=%d\n' $((($LINK_BASE_INFO2 >> 28) & 7))
+  printf '# RESERVE=%d\n' $((($LINK_BASE_INFO2 >> 31) & 1))
   printf 'XX_INFO=0x%X\n' $XX_INFO
   printf 'POINT_CNT=%d\n' $POINT_CNT
   printf 'DISP_FLG=0x%X\n' $DISP_FLG
@@ -289,6 +322,12 @@ decode_LKSP() {
   printf 'AREA_CLASS_FLG=%d\n' $AREA_CLASS_FLG
   printf 'ROUTE_INFO_FLG=%d\n' $ROUTE_INFO_FLG
   printf 'HIGHER_LINK_CNT=%d\n' $HIGHER_LINK_CNT
+
+  if (($ROUTE_INFO_FLG == 0)); then
+    echo "# no route info"
+    printf 'M=%d\n' $M
+    return
+  fi
    
   # uplv
   local UPLV_HDL=${D:$((48 + $i * 8))}
@@ -304,6 +343,8 @@ decode_LKSP() {
   # route
   local ROUT_HDL=${UPLV_HDL:$(($HIGHER_LINK_CNT * 8))}
   local ROUT_CNT="0x`SE16 ${ROUT_HDL:0:4}`"
+  printf 'ROUT_CNT=%d\n' $ROUT_CNT
+
   local ROUT_ID=()
   local ROUT_OFS=()
   M=$(($M - 2))
@@ -312,7 +353,6 @@ decode_LKSP() {
     ROUT_OFS[$i]="0x`SE32 ${ROUT_HDL:$((16 + $i * 16)):8}`"
     M=$(($M - 8))
   done
-  printf 'ROUT_CNT=%d\n' $ROUT_CNT
   echo "ROUT_ID=${ROUT_ID[@]}"
   echo "ROUT_OFS=${ROUT_OFS[@]}"
 
@@ -571,10 +611,21 @@ decode_NWLINK_DATA() {
   M=$(($M - 8))
 
   printf 'BASE1=0x%X\n' $BASE1
+  printf '# ROAD_TYPE=%d\n' $((($BASE1 >> 28) & 0xf))
+  printf '# LINK1_TYPE=%d\n' $((($BASE1 >> 24) & 0xf))
+  printf '# LINK2_TYPE=%d\n' $((($BASE1 >> 21) & 0x7))
+  printf '# LINK3_TYPE=%d\n' $((($BASE1 >> 18) & 0x7))
+  printf '# LINK4_TYPE=%d\n' $((($BASE1 >> 16) & 0x3))
+  printf '# ONEWAY=%d\n' $((($BASE1 >> 14) & 0x3))
+  printf '# TOLLFLAG=%d\n' $((($BASE1 >> 1) & 0x1))
+  printf '# BYPASS=%d\n' $(($BASE1 & 0xf))
   printf 'BASE2=0x%X\n' $BASE2
+  printf '# LINKDIST=%d\n' $((($BASE1 >> 16) & 0x7fff))
+  printf '# LANE=%d\n' $((($BASE1 >> 3) & 0x3))
+  printf '# EASYRUN=%d\n' $(($BASE1 & 0x7))
 
   printf '# NWLINK_DATA M=%d\n' $M
-  NOT_READY
+  #NOT_READY
 }
 
 decode_NWLINK() {
@@ -631,7 +682,7 @@ decode_NWCNCT_DATA() {
   printf 'RESERVED=0x%X\n' $RESERVED
 
   printf '# NWCNCT_DATA M=%d\n' $M
-  NOT_READY
+  #NOT_READY
 }
 
 decode_NWCNCT() {
@@ -777,7 +828,11 @@ decode_ROAD_NETWORK() {
 # BKGD
 #
 # sms/sms-core/SMCoreMP/SMBkgdAnalyze.h
+# sms/sms-core/SMCoreMP/MP_Def.h
 # sms/sms-core/SMCoreMP/MP_DrawMap.cpp
+# sms/sms-core/SMCoreMP/SMCommonAnalyzerData.h
+# sms/sms-core/SMCoreDHC/DHC_CashAreaCls.c
+# sms/sms-core/SMCoreMP/SMBkgdAnalyze.h
 #
 # (BKGD)
 # SIZE
@@ -805,42 +860,97 @@ decode_BKGDOBJ() {
   local INFO="0x`SE16 ${D:4:4}`"
   local SORT_ID="0x`SE32 ${D:8:8}`"
   local ID="0x`SE32 ${D:16:8}`"
-  local POINT_CNT="0x`SE16 ${D:24:4}`"
-  local POINT_INFO="0x`SE16 ${D:28:4}`"
-  local POINT_X=() 
-  local POINT_Y=() 
-  POINT_X[0]="0x`SE16 ${D:32:4}`"
-  POINT_Y[0]="0x`SE16 ${D:36:4}`"
-  M=$(($M - 20))
-  local i
-  #for ((i=0;i<($POINT_CNT - 1);i++)); do
-  for ((i=0;i<$POINT_CNT - 1;i++)); do
-    if (($POINT_INFO == 0)); then
-      # offset value byte pairs
-      POINT_X[$i]="0x`SE8 ${D:$((40 + $i * 4)):2}`"
-      POINT_Y[$i]="0x`SE8 ${D:$((42 + $i * 4)):2}`"
-      M=$(($M - 2))
-    else
-      # absolute values word pairs
-      POINT_X[$i]="0x`SE16 ${D:$((40 + $i * 8)):4}`"
-      POINT_Y[$i]="0x`SE16 ${D:$((44 + $i * 8)):4}`"
-      M=$(($M - 4))
-    fi
-  done
 
   printf 'BKGDOBJ_INFO=0x%X\n' $INFO
+  printf '# RESERVE=%d\n' $(($INFO & 0x3f)) # max levels (?)
+  printf '# EXADD_FLG=%d\n' $((($INFO >> 6) & 1)) # EXADD exist?
+  printf '# OBJ3D_FLG=%d\n' $((($INFO >> 7) & 1)) # OBJ3D exist?
+  printf '# FIGURE_TYPE=%d\n' $((($INFO >> 8) & 3))
+  local TYPE=$((($INFO >> 8) & 3))
+  printf '# ZOOM_FLG=%d\n' $(((INFO >> 10) & 0x3f))
+  # INFO2?
   printf 'BKGDOBJ_SORT_ID=0x%X\n' $SORT_ID
+  printf '# KIND_CD=%d\n' $(($SORT_ID & 0xff))
+  printf '# TYPE_CD=%d\n' $((($SORT_ID >> 8) & 0xff))
+  printf '# SORT_ID=%d\n' $((($SORT_ID >> 16) & 0xffff))
   printf 'BKGDOBJ_ID=0x%X\n' $ID
-  printf 'BKGDOBJ_POINT_CNT=%d\n' $POINT_CNT
-  printf 'BKGDOBJ_POINT_INFO=%d\n' $POINT_INFO
-  echo "POINT_X=${POINT_X[@]}"
-  echo "POINT_Y=${POINT_Y[@]}"
-  printf 'POINTS='
-  local i
-  for ((i=0;i<$POINT_CNT;i++)); do
-    printf '0x%X:0x%X,' ${POINT_X[$i]} ${POINT_Y[$i]}
-  done
-  printf '\n'
+
+  case $TYPE in
+    0)
+      printf '# SHAPE: POINT\n'
+      ;;
+    1)
+      printf '# SHAPE: LINE\n'
+      ;;
+    2)
+      printf '# SHAPE: POLYGON\n'
+      ;;
+    3)
+      printf '# SHAPE: NOPOLYGON\n'
+      ;;
+    *)
+      printf '# SHAPE: UNKNOWN\n'
+      ;;
+  esac
+
+  case $TYPE in
+    1 | 2 )
+ 
+      # interpret as points
+
+      local POINT_CNT="0x`SE16 ${D:24:4}`"
+      local POINT_INFO="0x`SE16 ${D:28:4}`"
+ 
+      printf 'BKGDOBJ_POINT_CNT=%d\n' $POINT_CNT
+      printf 'BKGDOBJ_POINT_INFO=%d\n' $POINT_INFO
+      printf '# RESERVE2=%d\n' $(($POINT_INFO & 0xff))
+      printf '# PRIMITIVE_KIND=%d\n' $((($POINT_INFO >> 8) & 0xf))
+      printf '# RESERVE=%d\n' $((($POINT_INFO >> 12) & 0x3))
+      printf '# EXPRESS_INFO=%d\n' $((($POINT_INFO >> 14) & 1))
+      printf '# DATA_FORM=%d\n' $((($POINT_INFO >> 15) & 1))
+      local DATA_FORM=$((($POINT_INFO >> 15) & 1))
+
+      local POINT_X=() 
+      local POINT_Y=() 
+      POINT_X[0]="0x`SE16 ${D:32:4}`"
+      POINT_Y[0]="0x`SE16 ${D:36:4}`"
+      M=$(($M - 20))
+      local j=1
+      local i
+      #for ((i=0;i<($POINT_CNT - 1);i++)); do
+      for ((i=0;i<$POINT_CNT - 1;i++)); do
+        if (($POINT_INFO == 0)); then
+          # offset value byte pairs
+          POINT_X[$j]="0x`SE8 ${D:$((40 + $i * 4)):2}`"
+          POINT_Y[$j]="0x`SE8 ${D:$((42 + $i * 4)):2}`"
+          M=$(($M - 2))
+        else
+          # absolute values word pairs
+          POINT_X[$j]="0x`SE16 ${D:$((40 + $i * 8)):4}`"
+          POINT_Y[$j]="0x`SE16 ${D:$((44 + $i * 8)):4}`"
+          M=$(($M - 4))
+        fi
+        j=$(($j + 1))
+      done
+
+      echo "POINT_X=${POINT_X[@]}"
+      echo "POINT_Y=${POINT_Y[@]}"
+
+      ;;
+
+    3)
+      # NOPOLYGON, no more data
+      printf '#### M=%d\n', $M
+      return
+      ;;
+
+    *)
+
+      NOT_READY
+      printf '#### M=%d\n', $M
+      return
+      ;;
+  esac
 
   # check size
   printf '#### M=%d\n', $M
@@ -851,6 +961,7 @@ decode_BKGDH() {
   local SIZE="0x`SE16 ${D:0:4}`"
   local CNT="0x`SE16 ${D:4:4}`"
 
+printf '#### BKGDH %s\n' ${D:0:16}
   printf '### BKGDH SIZE=%d (%d)\n' $SIZE $(($SIZE * 4))
   printf '### BKGDH CNT=%d\n' $CNT
 
@@ -858,7 +969,7 @@ decode_BKGDH() {
   D=${D:8}
   local i
   for ((i=0;i<$CNT;i++)); do
-    N="0x`SE16 ${D:0:4}`"
+    local N="0x`SE16 ${D:0:4}`"
     N=$(($N * 4))
     M=$(($M + $N))
     printf '# BKGDOBJ[%d] (%d)\n' $i $N 
@@ -883,7 +994,7 @@ echo "D=$D"
 
   D="${D:8}"
   for ((i=0;i<$BKGD_CNT;i++)); do
-    N="0x`SE16 ${D:0:4}`"
+    local N="0x`SE16 ${D:0:4}`"
     N=$(($N * 4))
     printf '# BKGDH[%d] (%d)\n' $i  $N
     N=$(($N * 2))
@@ -913,8 +1024,7 @@ decode_BKGD_AREA_CLS() {
 decode_MARK() {
   echo "!! MARK"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  SD=$D
-  D="$2"
+  local D="$2"
 
   MARK_CNT="0x`SE32 ${D:0:8}`"
   printf 'MARK_CNT=%d\n' $MARK_CNT
@@ -926,8 +1036,6 @@ decode_MARK() {
     echo "MARK[$i]=${D:0:$Z}"
     D="${D:$Z}"
   done 
-
-  D=$SD
 }
 
 #
@@ -949,7 +1057,7 @@ decode_MARK() {
 # UINT8: RNLG_ROUTE_YOMI_STR
 
 decode_RNLG() {
-  D=$1
+  local D=$1
 
   RNLG_SIZE="0x`SE16 ${D:0:4}`"
   RNLG_LANG_KIND="0x${D:4:2}"
@@ -976,7 +1084,7 @@ decode_RNLG() {
 }
 
 decode_RDNM() {
-  D=$1
+  local D=$1
 
   RDNM_SIZE="0x`SE16 ${D:0:4}`"
   RDNM_LANG_CNT="0x`SE16 ${D:4:4}`"
@@ -998,12 +1106,16 @@ decode_RDNM() {
 decode_ROAD_NAME() {
   echo "# ROAD_NAME"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  N=$1
-  D="$2"
-  RDNM_CNT="`SE32 ${D:0:8}`" # 4 bytes
+  local D="$2"
+  local RDNM_CNT="0x`SE32 ${D:0:8}`" # 4 bytes
   printf 'RDNM_CNT=%d\n' $RDNM_CNT
-
-  decode_RDNM ${D:8}
+  local i
+  for ((i=0;i<$RDNM_CNT;i++));do
+    local N="0x`SE16 ${D:8:4}`"
+    N=$(($N * 4))
+    printf '# RDNM[%d] (%d)\n' $i $N
+    decode_RDNM ${D:8:$(($N*2))}
+  done
 }
 
 #
@@ -1039,7 +1151,7 @@ decode_NMLG() {
 
   NMLG_SIZE="0x`SE16 ${D:0:4}`"
   NMLG_LANG_KIND="0x${D:4:2}"
-  NMLG_INFO1="`SE32 ${D:8:8}`"
+  NMLG_INFO1="0x`SE32 ${D:8:8}`"
   NMLG_X="0x`SE16 ${D:16:4}`"
   NMLG_Y="0x`SE16 ${D:20:4}`"
   NMLG_OFS_X="0x${D:24:2}"

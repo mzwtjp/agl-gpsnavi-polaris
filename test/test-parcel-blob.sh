@@ -14,6 +14,7 @@ parcel.txt	.dump output of PARCEL table.
 #INFILE=../data/uk/PARCEL.txt
 #INFILE=../data/uk/PARCEL_100.txt
 INFILE=../data/uk/PARCEL_500.txt
+#INFILE=../data/jp/PARCEL_500.txt
 DECODE=../tools/parcel-blob-decode.sh
 ENCODE=../tools/parcel-blob-encode.sh
 
@@ -33,6 +34,10 @@ do
   esac
 done
 shift $((OPTIND - 1))
+
+if [  -n "$1" ]; then
+  INFILE=$1
+fi
 
 #  PARCEL_ID INTEGER NOT NULL,
 #  PARCEL_BASIS BLOB NOT NULL,
