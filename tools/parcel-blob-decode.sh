@@ -88,7 +88,7 @@ stripx() {
 }
 
 NOT_READY() {
-  echo "##E NOT IMPLEMENTED YET!!"
+  echo "#E NOT IMPLEMENTED YET!! $1"
 }
 
 
@@ -392,27 +392,27 @@ echo "RDSP=$RDSP"
 
 decode_IDX_UPLINK() {
   echo "## decode_IDX_UPLINK"
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 decode_IDX_UPLINK2() {
   echo "## decode_IDX_UPLINK2"
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 decode_IDX_UPLINK3() {
   echo "## decode_IDX_UPLINK3"
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 decode_IDX_UPLINK4() {
   echo "## decode_IDX_UPLINK4"
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 decode_IDX_UPLINK5() {
   echo "## decode_IDX_UPLINK5"
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 decode_IDX_UPLINK6() {
   echo "## decode_IDX_UPLINK6"
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 
 decode_ROAD_SHAPE() {
@@ -625,7 +625,7 @@ decode_NWLINK_DATA() {
   printf '# EASYRUN=%d\n' $(($BASE1 & 0x7))
 
   printf '# NWLINK_DATA M=%d\n' $M
-  #NOT_READY
+  #NOT_READY "${FUNCNAME[0]}"
 }
 
 decode_NWLINK() {
@@ -682,7 +682,7 @@ decode_NWCNCT_DATA() {
   printf 'RESERVED=0x%X\n' $RESERVED
 
   printf '# NWCNCT_DATA M=%d\n' $M
-  #NOT_READY
+  #NOT_READY "${FUNCNAME[0]}"
 }
 
 decode_NWCNCT() {
@@ -709,15 +709,15 @@ decode_NWCNCT() {
 
 decode_NWLINKEX() {
   printf '# NWLINKEX\n'
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 decode_NWCNTEX() {
   printf '# NWCNTEX\n'
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 decode_LINKREG() {
   printf '# LINKREG\n'
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 
 decode_IDXLINK() {
@@ -946,7 +946,7 @@ decode_BKGDOBJ() {
 
     *)
 
-      NOT_READY
+      NOT_READY "TYPE=$TYPE"
       printf '#### M=%d\n', $M
       return
       ;;
@@ -1012,7 +1012,7 @@ echo "D=$D"
 decode_BKGD_AREA_CLS() {
   echo "# BKGD_AREA_CLS"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 
 #
@@ -1203,7 +1203,7 @@ D=$D2
 decode_GUIDE() {
   echo "# GUIDE"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 
 #
@@ -1213,7 +1213,7 @@ decode_GUIDE() {
 decode_ROAD_DENSITY() {
   echo "# ROAD_DENSITY"
   [ -n "$VERBOSE" ] && echo "# $1 $2"
-  NOT_READY
+  NOT_READY "${FUNCNAME[0]}"
 }
 
 #[ -n "$VERBOSE" ] && echo "KIND=$KIND"
@@ -1296,7 +1296,7 @@ case $KIND in
     decode_DENSITY $SIZE ${DATA:0:$(($SIZE * 8))}
     ;;
   *)
-    NOT_READY
+    NOT_READY "KIND=$KIND"
     ;;
 esac
 

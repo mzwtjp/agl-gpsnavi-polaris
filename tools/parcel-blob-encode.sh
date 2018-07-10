@@ -48,8 +48,28 @@ done
 
 shift $((OPTIND -1))
 
+#
+# util functions
+#
+
+# format integer into hex string, little endian
+# X = N VAL
+
+I2STR() {
+  local N=$1
+  local I=$2
+  local X=""
+  while ((N > 0)); do
+    X="$X`printf '%02X' $((I & 0xff))`"
+    I=$((I >> 8))
+    N=$((N - 1))
+  done
+  echo "$X"
+}
+
+
 NOT_READY() {
-  echo "## NOT IMPLEMENTED YET!!"
+  echo "#E NOT IMPLEMENTED YET!! $1"
 }
 
 #
@@ -57,8 +77,55 @@ NOT_READY() {
 #
 
 encode_PARCEL_BASIS() {
-  echo "# encode_PARCEL_BASIS"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${1:0:1}" == "#" ] && return
+  local K="${1%%=*}"
+  local B="${1#*=}"
+  local E
+
+  case $K in
+    "PCLB_SIZE" )
+      BLOB="$BLOB`I2STR 2 $B`"
+      ;;
+    "PCLB_SEA_FLG" )
+      BLOB="$BLOB`I2STR 1 $B`"
+      ;;
+    "PCLB_AREAREC_CNT" )
+      BLOB="$BLOB`I2STR 1 $B`"
+      ;;
+    "PCLB_REAL_LENGTH_T" )
+      BLOB="$BLOB`I2STR 4 $B`"
+      ;;
+    "PCLB_REAL_LENGTH_B" )
+      BLOB="$BLOB`I2STR 4 $B`"
+      ;;
+    "PCLB_REAL_LENGTH_L" )
+      BLOB="$BLOB`I2STR 4 $B`"
+      ;;
+    "PCLB_REAL_LENGTH_R" )
+      BLOB="$BLOB`I2STR 4 $B`"
+      ;;
+    "PCLB_COUNTRY_CODE_CNT" )
+      BLOB="$BLOB`I2STR 2 $B`"
+      ;;
+    "COUNTRY_CODE" )
+      for E in $B; do
+        BLOB="$BLOB`I2STR 2 $E`"
+      done
+      ;;
+    "AREA_NO" )
+      for E in $B; do
+        BLOB="$BLOB`I2STR 1 $E`"
+      done
+      ;;
+    *)
+      echo "#E UNKNOWN K=$K"
+      ;;
+  esac
 }
 
 #
@@ -66,8 +133,14 @@ encode_PARCEL_BASIS() {
 #
 
 encode_ROAD_SHAPE() {
-  echo "# encode_ROAD_SHAPE"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${L:0:1}" == "#" ] && return
+
+  local L=$1
 }
 
 #
@@ -75,8 +148,14 @@ encode_ROAD_SHAPE() {
 #
 
 encode_ROAD_NETWORK() {
-  echo "# encode_ROAD_NETWORK"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${L:0:1}" == "#" ] && return
+
+  local L=$1
 }
 
 #
@@ -84,8 +163,14 @@ encode_ROAD_NETWORK() {
 #
 
 encode_BKGD() {
-  echo "# encode_BKGD"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${L:0:1}" == "#" ] && return
+
+  local L=$1
 }
 
 #
@@ -93,8 +178,14 @@ encode_BKGD() {
 #
 
 encode_BKGD_AREA_CLS() {
-  echo "# encode_BKGD_AREA_CLS"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${L:0:1}" == "#" ] && return
+
+  local L=$1
 }
 
 #
@@ -102,8 +193,14 @@ encode_BKGD_AREA_CLS() {
 #
 
 encode_MARK() {
-  echo "# encode_MARK"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${L:0:1}" == "#" ] && return
+
+  local L=$1
 }
 
 #
@@ -111,8 +208,14 @@ encode_MARK() {
 #
 
 encode_ROAD_NAME() {
-  echo "# encode_ROAD_NAME"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${L:0:1}" == "#" ] && return
+
+  local L=$1
 }
 
 #
@@ -120,8 +223,14 @@ encode_ROAD_NAME() {
 #
 
 encode_NAME() {
-  echo "# encode_NAME"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${L:0:1}" == "#" ] && return
+
+  local L=$1
 }
 
 #
@@ -129,8 +238,14 @@ encode_NAME() {
 #
 
 encode_GUIDE() {
-  echo "# encode_GUIDE"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${L:0:1}" == "#" ] && return
+
+  local L=$1
 }
 
 #
@@ -138,59 +253,81 @@ encode_GUIDE() {
 #
 
 encode_DENSITY() {
-  echo "# encode_DENSITY"
-  NOT_READY
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  [ "${L:0:1}" == "#" ] && return
+
+  local L=$1
 }
 
-echo "KIND=$KIND"
+encode_UNKNOWN() {
+  if (($LINE_NO == 0)); then
+    echo "# ${FUNCNAME[0]}"
+    BLOB=""
+    NOT_READY "(${FUNCNAME[0]})"
+  fi
+  local L=$1
+}
+
+echo "# encode KIND=$KIND"
+
+# default
+
+PROC_LINE="encode_NONE"
+
+# set matching process function
 
 case $KIND in
   "PARCEL_BASIS")
-    encode_PARCEL_BASIS
+    PROC_LINE="encode_PARCEL_BASIS"
     ;;
   "ROAD_SHAPE")
-    encode_ROAD_SHAPE
+    PROC_LINE="encode_ROAD_SHAPE"
     ;;
   "ROAD_NETWORK")
-    encode_ROAD_NETWORK
+    PROC_LINE="encode_ROAD_NETWORK"
     ;;
   "BKGD")
-    encode_BKGD
+    PROC_LINE="encode_BKGD"
     ;;
   "BKGD_AREA_CLS")
-    encode_BKGD_AREA_CLS
+    PROC_LINE="encode_BKGD_AREA_CLS"
     ;;
   "MARK")
-    encode_MARK
+    PROC_LINE="encode_MARK"
     ;;
   "ROAD_NAME")
-    encode_ROAD_NAME
+    PROC_LINE="encode_ROAD_NAME"
     ;;
   "NAME")
-    encode_NAME
+    PROC_LINE="encode_NAME"
     ;;
   "GUIDE")
-    encode_GUIDE
+    PROC_LINE="encode_GUIDE"
     ;;
   "ROAD_DENSITY")
-    encode_DENSITY
+    PROC_LINE="encode_DENSITY"
     ;;
   *)
     ;;
 esac
 
-process() {
-  local L=$1
-  echo "#I $L"
-}
-
+#
 # read lines from stdin or file
+# encoded data is added to BLOB string
+# 
 
-cat $INFILE | \
-    while IFS= read -r line
+LINE_NO=0
+
+while IFS= read -r L
 do
-  process "$line"
-done
+  [ -n "$VERBOSE" ] && echo "#I $L"
+  ${PROC_LINE} $L
+  LINE_NO=$((LINE_NO + 1))
+done < <(cat $INFILE)
 
 # final output
 
